@@ -1,0 +1,425 @@
+import os
+import random
+import shutil
+import glob
+import hashlib
+
+configfile: "config.yml"
+
+def deterministic_seed(major_seed, index):
+	unique_string = f"{major_seed}_{index}"
+	hash_object = hashlib.sha256(unique_string.encode())
+	seed_int = int(hash_object.hexdigest(), 16)
+	# Reduce the seed to a range that is typical for seeds (e.g., 0 to 2^32-1)
+	return seed_int % (2**31 - 1)
+
+def generate_runs():
+	base_output_dir = config["OUTPUT_DIRECTORY"]
+	seed_from_config = config.get("SEED")
+	if not seed_from_config:  # This checks for both None and empty string
+		major_seed = random.randint(0, 2**31 - 1)
+	else:
+		try:
+			major_seed = int(seed_from_config)  # Ensure major_seed is an integer if provided
+		except ValueError:
+			major_seed = random.randint(0, 2**31 - 1)  # Generate a random seed if the provided SEED is not a valid integer
+
+	num_tech_replicates = int(config.get("FRAG_REPLICATES", 1))
+	num_pcr_reactions = int(config.get("NUM_PCR", 1))
+
+	os.makedirs(base_output_dir, exist_ok=True)
+	seed_log_path = os.path.join(base_output_dir, "seed_log.txt")
+
+	with open(seed_log_path, 'w') as seed_log:
+		seed_log.write(f"Major Seed: {major_seed}\n")
+
+		runs = {}
+		for i in range(config["NUM_SAMPLES"]):
+			sample_dir = os.path.join(base_output_dir, f"sample_{i+1}")
+			os.makedirs(sample_dir, exist_ok=True)
+			runs[sample_dir] = []
+			for j in range(num_tech_replicates):
+				tech_rep_dir = os.path.join(sample_dir, f"tech_replicate_{j+1}")
+				os.makedirs(tech_rep_dir, exist_ok=True)
+				tech_rep_seed = deterministic_seed(major_seed, i * num_tech_replicates + j)
+				runs[sample_dir].append((tech_rep_seed, tech_rep_dir, {}))
+				seed_log.write(f"Sample {i+1}, Tech Replicate {j+1}: Seed = {tech_rep_seed}\n")
+				for pcr_num in range(1, num_pcr_reactions + 1):
+					pcr_seed = deterministic_seed(tech_rep_seed, pcr_num)
+					runs[sample_dir][-1][2][pcr_num] = pcr_seed
+					seed_log.write(f"Sample {i+1}, Tech Replicate {j+1}, PCR {pcr_num}: Seed = {pcr_seed}\n")
+		return runs
+
+
+
+runs = generate_runs()
+
+
+def get_sample_data(directory):
+	return get_sample_names(directory)
+	
+from Bio import SeqIO
+
+def get_genomes(fasta_file):
+	with open(fasta_file, "r") as handle:
+		genomes = [record.id for record in SeqIO.parse(handle, "fasta")]
+	return genomes
+
+# Define the path to the fasta file
+FASTA_PATH = os.path.join(config["INPUT_DIRECTORY"], config["FASTA_FILE"])
+
+# Use the function to get the list of genomes
+genomes = get_genomes(FASTA_PATH)
+
+
+
+
+
+rule all:
+	input:
+		config["INPUT_DIRECTORY"] + "/mapping_reference/primers.bed",
+		expand("{sample_dir}/log_folder/Making_SQL_database.log", sample_dir=runs.keys()),
+		expand("{sample_dir}/log_folder/Defining_seq_and_mut.log", sample_dir=runs.keys()),
+		expand("{sample_dir}/tech_replicate_{tech_rep}/log_folder/Fragmentation.log", 
+			   sample_dir=runs.keys(), tech_rep=range(1, config["FRAG_REPLICATES"] + 1)),
+		expand("{sample_dir}/tech_replicate_{tech_rep}/{genome}_fragments.bed.gz", 
+			   sample_dir=runs.keys(), tech_rep=range(1, config["FRAG_REPLICATES"] + 1), genome=genomes),
+		expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/{genome}_splitting_complete.log", 
+			   sample_dir=runs.keys(), 
+			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1), genome=genomes),
+		expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/merging_complete.log", 
+			   sample_dir=runs.keys(), 
+			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1)),
+		expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/fragment_coordinates_lengths_pcr_{pcr_num}.csv", 
+			   sample_dir=runs.keys(), 
+			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1), 
+			   pcr_num=range(1, config["NUM_PCR"] + 1)),
+		expand(config["INPUT_DIRECTORY"] + "/mapping_reference/primers_set_bed_{pcr_num}.bed", 
+		 		pcr_num=range(1, config["NUM_PCR"] + 1)),
+		expand("{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}_R1.fastq.gz",
+			   sample_dir=runs.keys(),
+			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1),
+			   pcr_num=range(1, config["NUM_PCR"] + 1)),
+		expand("{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}_R2.fastq.gz",
+			   sample_dir=runs.keys(),
+			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1),
+			   pcr_num=range(1, config["NUM_PCR"] + 1)),
+		expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_sequenced_frags.fasta.gz",
+			   sample_dir=runs.keys(),
+			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1),
+			   pcr_num=range(1, config["NUM_PCR"] + 1))
+
+
+rule map_primers:
+	input:
+		primers_csv=config["INPUT_DIRECTORY"] + "/" + config["PRIMERS"],
+		ref_genome=config["INPUT_DIRECTORY"] + "/" + config["FASTA_FILE"]
+	output:
+		bed=config["INPUT_DIRECTORY"] + "/mapping_reference/primers.bed"
+	params:
+		ref_index=config["INPUT_DIRECTORY"] + "/mapping_reference/ref_index",
+		primers_fasta=config["INPUT_DIRECTORY"] + "/mapping_reference/all_primers.fasta",
+		primers_sam=config["INPUT_DIRECTORY"] + "/mapping_reference/primers.sam",
+		primers_bam=config["INPUT_DIRECTORY"] + "/mapping_reference/primers.bam",
+		primers_sorted_bam=config["INPUT_DIRECTORY"] + "/mapping_reference/primers_sorted.bam",
+		temp_bed=config["INPUT_DIRECTORY"] + "/mapping_reference/temp.bed"
+	shell:
+		"""
+		# Convert CSV to FASTA
+		python /usr/src/app/scripts/ampliseq/convert_csv_to_fasta.py {input.primers_csv} {params.primers_fasta}
+
+		# Build Bowtie2 index
+		bowtie2-build {input.ref_genome} {params.ref_index}
+
+		# Create FASTA index
+		samtools faidx {input.ref_genome}
+
+		# Map primer sequences to reference genome
+		bowtie2 -f -a -x {params.ref_index} -U {params.primers_fasta} -S {params.primers_sam}
+
+		# Convert SAM to BAM
+		samtools view -bS {params.primers_sam} > {params.primers_bam}
+
+		# Sort BAM file
+		samtools sort {params.primers_bam} -o {params.primers_sorted_bam}
+
+		# Convert sorted BAM to BED
+		bedtools bamtobed -split -i {params.primers_sorted_bam} > {params.temp_bed}
+		
+		# Filter BED file
+		awk '!seen[$1,$2,$3,$4,$6]++ {{print}}' {params.temp_bed} | sort -k1,1 -k2,2n | awk '{{diff=$3-$2}} !seen[$4,$1]++ {{max_diff=diff; print}} diff>max_diff {{max_diff=diff; print $0}}' > {output.bed}
+		"""
+		
+rule Making_SQL_database:
+	input:
+		FASTA_PATH = expand(config["INPUT_DIRECTORY"] + "/{name}", name=config["FASTA_FILE"])
+	output:
+		log = "{sample_dir}/log_folder/Making_SQL_database.log"
+	params:
+		NCORE=config.get("NCORE", ""),
+		CIRCULAR=config.get("CIRCULAR", "")
+	wildcard_constraints:
+		sample_dir="|".join(runs.keys())
+	run:
+		command = "Rscript /usr/src/app/scripts/ampliseq/Making_SQL_database.R"
+		if params.NCORE:
+			command += f" --cores {params.NCORE}"
+		command += f" --fasta_sequence {input.FASTA_PATH}"
+		if params.CIRCULAR:
+			command += f" --circular {params.CIRCULAR}"
+		command += f" --output {wildcards.sample_dir}"
+		command += f" > {output.log}"
+		shell(command)
+
+rule defining_seq_and_mut:
+	input:
+		INPUT_LOG="{sample_dir}/log_folder/Making_SQL_database.log"
+	output:
+		log = "{sample_dir}/log_folder/Defining_seq_and_mut.log"
+	params:
+		FASTA_PATH = os.path.join(config["INPUT_DIRECTORY"], config["FASTA_FILE"]),
+		seed = lambda wildcards: runs[wildcards.sample_dir][0][0],  
+		OUTPUT_DIRECTORY=lambda wildcards: wildcards.sample_dir,
+		NCORE=config.get("NCORE", ""),
+		MUT_CONTEXT=config.get("MUT_CONTEXT", ""),
+		TS_TV_RATIO=config.get("TS_TV_RATIO", ""),
+		VARIANT_PROBABILITY_TABLE=lambda wildcards: os.path.join(config["INPUT_DIRECTORY"], config["VARIANT_PROBABILITY_TABLE"]) if config["VARIANT_PROBABILITY_TABLE"] else "",
+		NR_COPIES=config.get("NR_COPIES", ""),
+		MULTIFASTA_COPIES=lambda wildcards: os.path.join(config["INPUT_DIRECTORY"], config["MULTIFASTA_COPIES"]) if config["MULTIFASTA_COPIES"] else "",
+		MUT_GENOME_FRACTION=config.get("MUT_GENOME_FRACTION", ""),
+		FRACTION_POSITION=config.get("FRACTION_POSITION", ""),
+		MUTATION_RATE=config.get("MUTATION_RATE", "")
+	wildcard_constraints:
+		sample_dir="|".join(runs.keys())
+	run:
+		command = "Rscript /usr/src/app/scripts/ampliseq/mut_genomes.R"
+		if params.NCORE:
+			command += f" --cores {params.NCORE}"
+		command += f" --fasta_sequence {params.FASTA_PATH}"
+		command += f" --output {params.OUTPUT_DIRECTORY}"
+		if params.MUT_CONTEXT:
+			command += f" --mutational_context {params.MUT_CONTEXT}"
+		if params.TS_TV_RATIO:
+			command += f" --Ts_Tv_ratio {params.TS_TV_RATIO}"
+		if params.VARIANT_PROBABILITY_TABLE:
+			command += f" --variant_probability_table {params.VARIANT_PROBABILITY_TABLE}"
+		if params.NR_COPIES:
+			command += f" --nr_copies {params.NR_COPIES}"
+		if params.MULTIFASTA_COPIES:
+			command += f" --multifasta_copies {params.MULTIFASTA_COPIES}"
+		if params.MUT_GENOME_FRACTION:
+			command += f" --mut_genome_fraction {params.MUT_GENOME_FRACTION}"
+		if params.FRACTION_POSITION:
+			command += f" --fraction_positions {params.FRACTION_POSITION}"
+		if params.MUTATION_RATE:
+			command += f" --specific_mut_rate {params.MUTATION_RATE}"
+		command += f" --set_seed {params.seed}"
+		command += f" > {output.log}"
+		shell(command)
+
+rule Fragmentation:
+	input:
+		INPUT_LOG="{sample_dir}/log_folder/Defining_seq_and_mut.log"
+	output:
+		log="{sample_dir}/tech_replicate_{tech_rep}/log_folder/Fragmentation.log"
+	params:
+		FASTA_PATH = os.path.join(config["INPUT_DIRECTORY"], config["FASTA_FILE"]),
+		seed=lambda wildcards: int(runs[wildcards.sample_dir][int(wildcards.tech_rep) - 1][0]),
+		OUTPUT_DIRECTORY=lambda wildcards: f"./tech_replicate_{wildcards.tech_rep}",
+		INPUT_DIRECTORY=lambda wildcards: wildcards.sample_dir,
+		NCORE=config.get("NCORE", ""),
+		CIRCULAR=config.get("CIRCULAR", ""),
+		FRAGMENT_FRACTION=config.get("FRAGMENT_FRACTION", ""),
+		FRAGMENT_LENGTH=config.get("FRAGMENT_LENGTH", "")
+	wildcard_constraints:
+		sample_dir="|".join(runs.keys()),
+		tech_rep="\d+"
+	run:
+		command = "Rscript /usr/src/app/scripts/ampliseq/fragmentation.R"
+		if params.NCORE:
+			command += f" --cores {params.NCORE}"
+		if params.CIRCULAR:
+			command += f" --circular {params.CIRCULAR}"
+		if params.FRAGMENT_FRACTION:
+			command += f" --fragmentation_fraction {params.FRAGMENT_FRACTION}"
+		if params.FRAGMENT_LENGTH:
+			command += f" --fragment_length {params.FRAGMENT_LENGTH}"
+		command += f" --fasta_sequence {params.FASTA_PATH}"
+		command += f" --set_seed {params.seed}"
+		command += f" --input_directory {params.INPUT_DIRECTORY}"
+		command += f" --output_directory {params.OUTPUT_DIRECTORY}"
+		command += f" > {output.log}"
+		shell(command)
+
+rule convert_csv_to_bedgz:
+	input:
+		INPUT_LOG="{sample_dir}/tech_replicate_{tech_rep}/log_folder/Fragmentation.log"
+	output:
+		bed_gz = "{sample_dir}/tech_replicate_{tech_rep}/{genome}_fragments.bed.gz"
+	params:
+		frag_coords = "{sample_dir}/tech_replicate_{tech_rep}/{genome}_fragment_coordinates.csv",
+		new_start = "{sample_dir}/tech_replicate_{tech_rep}/{genome}_new_start.csv",
+		fasta_length = "{sample_dir}/fasta_lengths.csv",
+		output_dir = "{sample_dir}/tech_replicate_{tech_rep}",
+		cores = config.get("NCORE", "")
+	wildcard_constraints:
+		sample_dir = "|".join(runs.keys()),
+		tech_rep = "\d+",
+		genome = "[^/]+"
+	shell:
+		"""
+		/usr/src/app/scripts/ampliseq/csv_to_bedgz {params.frag_coords} {params.new_start} {params.fasta_length} {output.bed_gz} {params.cores}
+		"""
+
+rule split_into_pcr:
+	input:
+		bed_gz = "{sample_dir}/tech_replicate_{tech_rep}/{genome}_fragments.bed.gz"
+	output:
+		log = "{sample_dir}/tech_replicate_{tech_rep}/PCR/{genome}_splitting_complete.log"
+	params:
+		num_pcr = config["NUM_PCR"],
+		seed = lambda wildcards: int(runs[wildcards.sample_dir][int(wildcards.tech_rep) - 1][0]),
+		output_dir = "{sample_dir}/tech_replicate_{tech_rep}/PCR"
+	wildcard_constraints:
+		sample_dir="|".join(runs.keys()),
+		tech_rep="\d+",
+		genome = "[^/]+"
+	shell:
+		"""
+		/usr/src/app/scripts/ampliseq/splitting_bedgz {input.bed_gz} {params.output_dir}/{wildcards.genome}_pcr {params.num_pcr} {params.seed} > {output.log}
+		"""
+
+rule merge_pcr_files:
+	input:
+		logs = expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/{genome}_splitting_complete.log", 
+					  sample_dir=runs.keys(), 
+					  tech_rep=range(1, config["FRAG_REPLICATES"] + 1), 
+					  genome=genomes)
+	output:
+		merged_log = "{sample_dir}/tech_replicate_{tech_rep}/PCR/merging_complete.log"
+	params:
+		output_dir = "{sample_dir}/tech_replicate_{tech_rep}/PCR"
+	shell:
+		"""
+		for i in $(seq 1 {config[NUM_PCR]}); do
+			gzip -dc {params.output_dir}/*_pcr_$i.bed.gz | gzip > {params.output_dir}/fragments_pcr$i.bed.gz
+		done
+		rm {params.output_dir}/*_pcr_*.bed.gz
+		touch {output.merged_log}
+		"""
+
+rule splitting_primers_bed_into_pcr:
+	input:
+		primers_bed = config["INPUT_DIRECTORY"] + "/mapping_reference/primers.bed"
+	output:
+		split_primer_bed = config["INPUT_DIRECTORY"] + "/mapping_reference/primers_set_bed_{pcr_num}.bed"
+	params:
+		primer_tables = config["INPUT_DIRECTORY"] + "/primer_set_{pcr_num}.csv"
+	shell:
+		"""
+		python /usr/src/app/scripts/ampliseq/splitting_bed_into_pcr.py {input.primers_bed} {params.primer_tables} {output.split_primer_bed}
+		"""
+
+
+rule matching_fragment_to_primers_bed:
+	input:
+		INPUT_LOG = "{sample_dir}/tech_replicate_{tech_rep}/PCR/merging_complete.log",
+		split_primer_bed = config["INPUT_DIRECTORY"] + "/mapping_reference/primers_set_bed_{pcr_num}.bed"
+	output:
+		frag_coordinates_lengths = "{sample_dir}/tech_replicate_{tech_rep}/PCR/fragment_coordinates_lengths_pcr_{pcr_num}.csv"
+	params:
+		pcr_file = "{sample_dir}/tech_replicate_{tech_rep}/PCR/fragments_pcr{pcr_num}.bed.gz",
+		fasta_length = "{sample_dir}/fasta_lengths.csv",
+		amp_length = config["AMPLICON_LENGTH"]
+	shell:
+		"""
+		/usr/src/app/scripts/ampliseq/primer_binding_fragments {input.split_primer_bed} {params.pcr_file} {params.fasta_length} {output.frag_coordinates_lengths} {params.amp_length}
+		"""
+
+rule pcr_sim:
+	input:
+		frag_coordinates_lengths = "{sample_dir}/tech_replicate_{tech_rep}/PCR/fragment_coordinates_lengths_pcr_{pcr_num}.csv"
+	output:
+		csv_list="{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_csv_list.txt",
+		fasta_list="{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_fasta_list.txt"
+	params:
+		seed=lambda wildcards: runs[wildcards.sample_dir][int(wildcards.tech_rep) - 1][2][int(wildcards.pcr_num)],
+		NCORE=config.get("NCORE", ""),
+		POL_ERROR_RATE=config.get("POL_ERROR_RATE", ""),
+		NUM_CYCLES=config.get("NUM_CYCLES", ""),
+		MIDPOINT_CYCLE=config.get("MIDPOINT_CYCLE", ""),
+		K_PARAMETER_pcr=config.get("K_PARAMETER", ""),
+		NUM_READS=config.get("NUM_READS", ""),
+		OPT_FRAG_LENGTH=config.get("OPT_FRAG_LENGTH", ""),
+		K_PARAMETER_seq=config.get("K_PARAMETER_seq", ""),
+		FRACTION_PCR_SEQUENCING=config.get("FRACTION_PCR_SEQUENCING", "")
+	log:
+		log = "{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}.log"
+	run:
+		command = "/usr/src/app/scripts/ampliseq/PCR.sh"
+		if params.seed:
+			command += f" --set_seed {params.seed}"
+		if params.NCORE:
+			command += f" --cores {params.NCORE}"
+		if params.NUM_READS:
+			command += f" --num_reads {params.NUM_READS}"
+		if params.OPT_FRAG_LENGTH:
+			command += f' --optimal_length_mode "{params.OPT_FRAG_LENGTH}"'
+		if params.K_PARAMETER_seq:
+			command += f" --k_parameter_seq {params.K_PARAMETER_seq}"
+		if params.POL_ERROR_RATE:
+			command += f" --polymerase_error_rate {params.POL_ERROR_RATE}"
+		if params.NUM_CYCLES:
+			command += f" --num_cycles {params.NUM_CYCLES}"
+		if params.MIDPOINT_CYCLE:
+			command += f" --midpoint_cycle {params.MIDPOINT_CYCLE}"
+		if params.K_PARAMETER_pcr:
+			command += f" --k_parameter_pcr {params.K_PARAMETER_pcr}"
+		if params.FRACTION_PCR_SEQUENCING:
+			command += f" --frac_to_seq {params.FRACTION_PCR_SEQUENCING}"
+		command += f" --input_file {input.frag_coordinates_lengths}"
+		command += f" > {log.log}"
+		shell(command)
+
+
+
+rule simulate_reads:
+	input:
+		csv_list="{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_csv_list.txt",
+		fasta_list="{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_fasta_list.txt",
+	output:
+		genereted_reads1 = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}_R1.fastq.gz",
+		genereted_reads2 = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}_R2.fastq.gz"
+	params:
+		ERROR_MODEL=config.get("ERROR_MODEL", ""),
+		NCORE=config.get("NCORE", ""),
+		FASTA_GZ_OUTPUT=config.get("FASTA_GZ_OUTPUT", ""),
+		output_prefix = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}",
+		seed = lambda wildcards: int(runs[wildcards.sample_dir][int(wildcards.tech_rep) - 1][0]),
+	run:
+		command = "iss generate"
+		command += f" --fasta_list {input.fasta_list}"
+		command += f" --csv_reads_list {input.csv_list}"
+		if params.ERROR_MODEL:
+			command += f" --model {params.ERROR_MODEL}"
+		if params.FASTA_GZ_OUTPUT:
+			command += f" {params.FASTA_GZ_OUTPUT}"
+		if params.NCORE:
+			command += f" --cpus {params.NCORE}"
+		command += f" --seed {params.seed}" 
+		command += f" --output {params.output_prefix}"
+		shell(command)
+
+rule merging_fastas_and_cleanup:
+	input:
+		csv_list="{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_csv_list.txt",
+		fasta_list="{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_fasta_list.txt",
+		genereted_reads1 = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}_R1.fastq.gz",
+		genereted_reads2 = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}_R2.fastq.gz"
+	output:
+		merged_fasta="{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_sequenced_frags.fasta.gz",
+	shell:
+		"""
+		/usr/src/app/scripts/ampliseq/merging_sequenced_fasta_and_csv.sh {input.csv_list} {input.fasta_list} {output.merged_fasta}
+		rm {input.csv_list} {input.fasta_list}
+		"""
