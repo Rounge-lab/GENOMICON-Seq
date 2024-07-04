@@ -15,13 +15,13 @@ INPUT_DIRECTORY: "input_data_wes"
 FASTA_FILE: "chr1_only.fasta.gz" 
 SBS_SIGNATURES: ""
 
-# ================== Configuration for 1defining_seq_and_mut ==================
+# ================== Sample parameters ==================
 
+NR_COPIES: "10"
+MULTIFASTA_COPIES: "" 
 MUT_CONTEXT: "TCA,TCT,TCC"
 TS_TV_RATIO: "3:1" 
-VARIANT_PROBABILITY_TABLE: "" 
-NR_COPIES: "10" 
-MULTIFASTA_COPIES: "" 
+VARIANT_PROBABILITY_TABLE: ""  
 MUT_GENOME_FRACTION: "" 
 FRACTION_POSITION: "" 
 MUTATION_RATE: "1e-4" 
@@ -41,9 +41,10 @@ MATCHING_LENGTH: "100"
 
 # ================== Configuration for PCR ==================
 
+NUM_CYCLES: "8"
 K_PARAMETER_pcr: "0.3" 
 MIDPOINT_CYCLE: "20" 
-NUM_CYCLES: "8"
+
 
 # ================= Sequencing Parameteres ==================
 

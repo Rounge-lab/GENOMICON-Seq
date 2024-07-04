@@ -268,3 +268,32 @@ find "${main_pcr_folder}" -maxdepth 1 -type f -name "temp_reads_*.csv" > "$csv_o
 find "${main_pcr_folder}" -maxdepth 1 -type f -name "temp_*.fasta" > "$fasta_output_list"
 
 echo "CSV and FASTA file lists have been created."
+
+# Merging temp-mutation-count.csv
+temp_counts_names=($(find "${main_pcr_folder}" -maxdepth 1 -type f -regextype posix-extended -regex ".*/worker_.*_temp-mutation-count\.csv"))
+final_count_name="${main_pcr_folder}seq_mutation_counts.csv"
+
+# Merge all files into one
+cat "${temp_counts_names[@]}" > "${final_count_name}.tmp"
+
+# Process the merged file to sum duplicates
+sort "${final_count_name}.tmp" | awk -F, '{
+    if (last_key && last_key != $1 "," $2) {
+        print last_key "," sum
+        sum = 0
+    }
+    last_key = $1 "," $2
+    sum += $3
+}
+END {
+    if (last_key) print last_key "," sum
+}' > "${final_count_name}"
+
+# Remove temporary file
+rm "${final_count_name}.tmp"
+
+echo "Merging and summary complete. Results saved in ${final_count_name}"
+
+for temp_counts_names in "${temp_counts_names[@]}"; do
+    rm "$temp_counts_names"
+done

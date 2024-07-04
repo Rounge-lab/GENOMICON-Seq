@@ -10,6 +10,18 @@
 #include <algorithm>
 #include <string>
 
+// Function declarations
+std::vector<std::string> parseCsvLine(const std::string& line);
+std::vector<std::string> split(const std::string &s, char delimiter);
+std::string executeQuery(sqlite3* db, const std::string& query);
+std::string queryDatabase(const std::string& databasePath, const std::string& chrName, int start, int end, int genomeLength);
+void applyMutations(std::string& sequence, const std::string& mutations, int fragmentStart, int fragmentEnd, int genomeLength, const std::string& chrName, std::vector<std::string>& realMutationTracker, std::map<std::string, int>& mutationCount);
+void mutatePcrSequence(std::string& sequence, const std::string& pcrMutations, std::mt19937& gen, std::map<std::string, int>& mutationTracking, int fragmentStart, int fragmentEnd, int genomeLength);
+void writeFastaChunks(const std::string& outputBasePath, const std::string& fastaContent, size_t& fileCounter, std::string& buffer, size_t& currentSize);
+std::string processFragment(const std::string &fragmentRow, const std::map<std::string, std::string> &sampleTablePaths, const std::string &sqlDatabasePath, std::string &lastChrName, std::ifstream &sampleTableFile, std::mt19937& gen, const std::unordered_map<std::string, int>& genomeLengths, std::map<std::string, int>& mutationTracking, std::vector<std::string>& realMutationTracker, std::map<std::string, int>& mutationCount);
+int main(int argc, char* argv[]);
+
+// Function definitions
 std::vector<std::string> parseCsvLine(const std::string& line) {
     std::vector<std::string> tokens;
     std::string token;
@@ -19,18 +31,18 @@ std::vector<std::string> parseCsvLine(const std::string& line) {
 
     while (stream.good()) {
         getline(stream, token, delimiter);
-        token.erase(0, token.find_first_not_of(' ')); 
-        token.erase(token.find_last_not_of(' ') + 1); 
+        token.erase(0, token.find_first_not_of(' '));
+        token.erase(token.find_last_not_of(' ') + 1);
         if (!token.empty() && token.front() == quote) {
             if (token.back() == quote) {
                 token = token.substr(1, token.size() - 2);
             } else {
                 std::string nextPart;
                 while (getline(stream, nextPart, delimiter)) {
-                    token += ',' + nextPart; 
+                    token += ',' + nextPart;
                     if (!nextPart.empty() && nextPart.back() == quote) {
                         token = token.substr(1, token.size() - 2);
-                        break; 
+                        break;
                     }
                 }
             }
@@ -39,7 +51,6 @@ std::vector<std::string> parseCsvLine(const std::string& line) {
     }
     return tokens;
 }
-
 
 std::vector<std::string> split(const std::string &s, char delimiter) {
     std::vector<std::string> tokens;
@@ -74,9 +85,8 @@ std::string queryDatabase(const std::string& databasePath, const std::string& ch
         return "";
     }
 
-    std::string query; 
+    std::string query;
     std::string nonmutatedSequence;
-
 
     if (start > end && genomeLength > 0) {
         // For circular logic
@@ -93,16 +103,12 @@ std::string queryDatabase(const std::string& databasePath, const std::string& ch
 
     sqlite3_close(db);
 
-
     return nonmutatedSequence;
 }
 
-
-
-
-void applyMutations(std::string& sequence, const std::string& mutations, int fragmentStart, int fragmentEnd, int genomeLength) {
+void applyMutations(std::string& sequence, const std::string& mutations, int fragmentStart, int fragmentEnd, int genomeLength, const std::string& chrName, std::vector<std::string>& realMutationTracker, std::map<std::string, int>& mutationCount) {
     if (mutations == "No mutation") {
-        return; 
+        return;
     }
 
     std::vector<std::string> mutationList = split(mutations, ',');
@@ -110,22 +116,37 @@ void applyMutations(std::string& sequence, const std::string& mutations, int fra
         int globalMutPosition = std::stoi(mut.substr(0, mut.size() - 1));
         char mutNucleotide = mut.back();
 
-        if (fragmentStart > fragmentEnd && globalMutPosition < fragmentStart) {
-            globalMutPosition += genomeLength;
+        bool withinRange = false;
+
+        // Check if the mutation is within the range
+        if (fragmentStart <= fragmentEnd) {
+            // Linear genome
+            withinRange = (globalMutPosition >= fragmentStart && globalMutPosition <= fragmentEnd);
+        } else {
+            // Circular genome
+            withinRange = (globalMutPosition >= fragmentStart || globalMutPosition <= fragmentEnd);
         }
 
-        int localMutPosition = globalMutPosition - fragmentStart;
-        if (localMutPosition < 0) {
-            localMutPosition += genomeLength; 
-        }
+        if (withinRange) {
+            // Convert global position to local position relative to fragment start
+            int localMutPosition = globalMutPosition - fragmentStart;
+            if (localMutPosition < 0) {
+                localMutPosition += genomeLength;
+            }
 
-        localMutPosition %= sequence.length(); 
-        if (localMutPosition >= 0 && localMutPosition < sequence.length()) {
-            sequence[localMutPosition] = mutNucleotide;
+            // Ensure local position is within the fragment sequence length
+            localMutPosition %= sequence.length();
+            if (localMutPosition >= 0 && localMutPosition < sequence.length()) {
+                // Apply mutation to the sequence
+                sequence[localMutPosition] = mutNucleotide;
+                // Record the mutation only if it is applied
+                std::string mutationKey = chrName + "," + std::to_string(globalMutPosition) + mutNucleotide;
+                realMutationTracker.push_back(mutationKey);
+                mutationCount[mutationKey]++;
+            }
         }
     }
 }
-
 
 void mutatePcrSequence(std::string& sequence, const std::string& pcrMutations, std::mt19937& gen, std::map<std::string, int>& mutationTracking, int fragmentStart, int fragmentEnd, int genomeLength) {
     if (pcrMutations == "No_mutations") {
@@ -148,9 +169,9 @@ void mutatePcrSequence(std::string& sequence, const std::string& pcrMutations, s
 
         char originalNucleotide = sequence[localPosition];
         const auto& replacements = nucleotideReplacements[originalNucleotide];
-        
+
         std::uniform_int_distribution<> distr(0, replacements.size() - 1);
-        char newNucleotide = replacements[distr(gen)]; 
+        char newNucleotide = replacements[distr(gen)];
 
         sequence[localPosition] = newNucleotide; // Apply mutation
 
@@ -172,8 +193,7 @@ void mutatePcrSequence(std::string& sequence, const std::string& pcrMutations, s
     }
 }
 
-void writeFastaChunks(const std::string& outputBasePath, const std::string& fastaContent, 
-                      size_t& fileCounter, std::string& buffer, size_t& currentSize) {
+void writeFastaChunks(const std::string& outputBasePath, const std::string& fastaContent, size_t& fileCounter, std::string& buffer, size_t& currentSize) {
     size_t chunkSizeLimit = 1048576; // 1MB in bytes
     buffer += fastaContent;
     currentSize += fastaContent.size();
@@ -188,14 +208,7 @@ void writeFastaChunks(const std::string& outputBasePath, const std::string& fast
     }
 }
 
-
-std::string processFragment(const std::string &fragmentRow,
-                            const std::map<std::string, std::string> &sampleTablePaths,
-                            const std::string &sqlDatabasePath, std::string &lastChrName,
-                            std::ifstream &sampleTableFile, std::mt19937& gen,
-                            const std::unordered_map<std::string, int>& genomeLengths,
-                            std::map<std::string, int>& mutationTracking) {
-
+std::string processFragment(const std::string &fragmentRow, const std::map<std::string, std::string> &sampleTablePaths, const std::string &sqlDatabasePath, std::string &lastChrName, std::ifstream &sampleTableFile, std::mt19937& gen, const std::unordered_map<std::string, int>& genomeLengths, std::map<std::string, int>& mutationTracking, std::vector<std::string>& realMutationTracker, std::map<std::string, int>& mutationCount) {
     std::vector<std::string> row = split(fragmentRow, ';');
     std::string fragmentName = row[0];
     std::string pcrMutations = row[1];
@@ -206,7 +219,7 @@ std::string processFragment(const std::string &fragmentRow,
     std::string chrName = nameParts[0];
     std::string originalGenomeName = chrName + "_" + nameParts[1];
 
-    int genomeLength = 0; 
+    int genomeLength = 0;
 
     if (chrName != lastChrName) {
         lastChrName = chrName;
@@ -222,7 +235,7 @@ std::string processFragment(const std::string &fragmentRow,
                 genomeLength = it->second;
             } else {
                 std::cerr << "Failed to fetch a valid genome length for " << chrName << ". Aborting fragment processing." << std::endl;
-                return ""; 
+                return "";
             }
         }
     } else {
@@ -232,11 +245,10 @@ std::string processFragment(const std::string &fragmentRow,
                 genomeLength = lengthIt->second;
             } else {
                 std::cerr << "Unable to correct invalid genome length for " << chrName << ". Aborting fragment processing." << std::endl;
-                return ""; 
+                return "";
             }
         }
     }
-
 
     std::string originalMutations = "No mutation";
     if (sampleTableFile.is_open()) {
@@ -244,7 +256,6 @@ std::string processFragment(const std::string &fragmentRow,
         std::getline(sampleTableFile, sampleLine);
 
         while (std::getline(sampleTableFile, sampleLine)) {
-
             std::vector<std::string> sampleRow = parseCsvLine(sampleLine);
 
             std::string genomeNameInTable = sampleRow[0];
@@ -252,17 +263,16 @@ std::string processFragment(const std::string &fragmentRow,
                 genomeNameInTable = genomeNameInTable.substr(1, genomeNameInTable.length() - 2);
             }
 
-
             if (genomeNameInTable == originalGenomeName) {
                 if (sampleRow[1].front() == '"' && sampleRow[1].back() == '"') {
                     originalMutations = sampleRow[1].substr(1, sampleRow[1].length() - 2);
                 } else {
                     originalMutations = sampleRow[1];
                 }
-                break; 
+                break;
             }
         }
-        sampleTableFile.clear(); 
+        sampleTableFile.clear();
         sampleTableFile.seekg(0, std::ios::beg);
     }
 
@@ -271,34 +281,32 @@ std::string processFragment(const std::string &fragmentRow,
     int fragmentStart = 0;
     int fragmentEnd = 0;
     if (coordinates.size() >= 2) {
-
         try {
             fragmentStart = std::stoi(coordinates[0]);
             fragmentEnd = std::stoi(coordinates[1]);
         } catch (const std::invalid_argument& e) {
             std::cerr << "Error: Invalid argument. Unable to convert '" << coordinates[0] << "' or '" << coordinates[1] << "' to integers." << std::endl;
-            return ""; 
+            return "";
         } catch (const std::out_of_range& e) {
             std::cerr << "Error: Out of range. The values '" << coordinates[0] << "' or '" << coordinates[1] << "' are out of integer range." << std::endl;
-            return ""; 
+            return "";
         }
     } else {
         std::cerr << "Error: Incorrect format for fragment coordinates. Expected format 'start:end', got '" << fragmentCoordinates << "'." << std::endl;
-        return ""; 
+        return "";
     }
 
     std::string databasePath = sqlDatabasePath + "/" + chrName + ".sqlite";
     std::string nonmutatedSequence = queryDatabase(databasePath, chrName, fragmentStart, fragmentEnd, genomeLength);
 
-    applyMutations(nonmutatedSequence, originalMutations, fragmentStart, fragmentEnd, genomeLength);
-    mutatePcrSequence(nonmutatedSequence, pcrMutations, gen, mutationTracking,fragmentStart, fragmentEnd, genomeLength); 
+    applyMutations(nonmutatedSequence, originalMutations, fragmentStart, fragmentEnd, genomeLength, chrName, realMutationTracker, mutationCount);
+    mutatePcrSequence(nonmutatedSequence, pcrMutations, gen, mutationTracking, fragmentStart, fragmentEnd, genomeLength);
 
     std::replace(pcrMutations.begin(), pcrMutations.end(), ' ', '_');
     std::replace(pcrMutations.begin(), pcrMutations.end(), ',', '_');
 
     return ">" + fragmentName + "_" + pcrMutations + "\n" + nonmutatedSequence + "\n";
 }
-
 
 int main(int argc, char* argv[]) {
     if (argc < 7) {
@@ -310,10 +318,11 @@ int main(int argc, char* argv[]) {
     std::string sampleTableBasePath = argv[2];
     std::string sqlDatabasePath = argv[3];
     int seed = std::stoi(argv[4]);
-    std::string genomeLengthsTable = argv[5]; 
-    std::string outputBasePath = argv[6]; 
-    
+    std::string genomeLengthsTable = argv[5];
+    std::string outputBasePath = argv[6];
+
     std::map<std::string, int> mutationTracking;
+    std::map<std::string, int> mutationCount; // New map to track mutation counts
 
     std::mt19937 gen(seed);
     std::ifstream pcrTableFile(pcrTablePath);
@@ -327,31 +336,29 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to open genome lengths file: " << genomeLengthsTable << std::endl;
         return 1;
     }
-    
+
     std::string line;
     std::getline(genomeLengthsFile, line);
 
     while (std::getline(genomeLengthsFile, line)) {
-    std::istringstream ss(line);
-    std::string fastaName, lengthStr;
-    std::getline(ss, fastaName, ',');
-    std::getline(ss, lengthStr, ',');
+        std::istringstream ss(line);
+        std::string fastaName, lengthStr;
+        std::getline(ss, fastaName, ',');
+        std::getline(ss, lengthStr, ',');
 
-    if (fastaName.front() == '"' && fastaName.back() == '"') {
-        fastaName = fastaName.substr(1, fastaName.size() - 2);
+        if (fastaName.front() == '"' && fastaName.back() == '"') {
+            fastaName = fastaName.substr(1, fastaName.size() - 2);
+        }
+
+        try {
+            int length = std::stoi(lengthStr);
+            genomeLengths[fastaName] = length;
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Error converting length to integer for " << fastaName << " with value: " << lengthStr << std::endl;
+        } catch (const std::out_of_range& e) {
+            std::cerr << "Length value out of range for " << fastaName << " with value: " << lengthStr << std::endl;
+        }
     }
-
-    try {
-        int length = std::stoi(lengthStr);
-        genomeLengths[fastaName] = length;
-        
-    } catch (const std::invalid_argument& e) {
-        std::cerr << "Error converting length to integer for " << fastaName << " with value: " << lengthStr << std::endl;
-    } catch (const std::out_of_range& e) {
-        std::cerr << "Length value out of range for " << fastaName << " with value: " << lengthStr << std::endl;
-    }
-}
-
 
     std::set<std::string> uniqueChromosomes;
     while (std::getline(pcrTableFile, line)) {
@@ -380,8 +387,10 @@ int main(int argc, char* argv[]) {
     std::string buffer;
     size_t currentSize = 0;
 
+    std::vector<std::string> realMutationTracker;
+
     while (std::getline(pcrTableFile, line)) {
-        std::string fastaSequence = processFragment(line, sampleTablePaths, sqlDatabasePath, lastChrName, sampleTableFile, gen, genomeLengths, mutationTracking); 
+        std::string fastaSequence = processFragment(line, sampleTablePaths, sqlDatabasePath, lastChrName, sampleTableFile, gen, genomeLengths, mutationTracking, realMutationTracker, mutationCount);
         writeFastaChunks(outputBasePath, fastaSequence, fileCounter, buffer, currentSize);
     }
 
@@ -404,6 +413,15 @@ int main(int argc, char* argv[]) {
             mutationTrackingFile << posAndNuc << "," << count << "\n";
         }
         mutationTrackingFile.close();
+    }
+
+    if (!realMutationTracker.empty()) {
+        std::ofstream realMutationFile(outputBasePath + "-real_mutations.csv");
+        realMutationFile << "chrName,inserted_mutation,count\n"; // Header row
+        for (const auto& pair : mutationCount) {
+            realMutationFile << pair.first << "," << pair.second << "\n";
+        }
+        realMutationFile.close();
     }
 
     pcrTableFile.close();

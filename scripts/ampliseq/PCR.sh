@@ -351,7 +351,7 @@ if [ ${#temp_csv_names[@]} -gt 0 ]; then
             tail -n +2 "$file" >> "$pcr_mutations"
         fi
     done
-    echo "Merge complete. Couning the occurance of the unique mutations."
+    echo "Merge complete. Counting the occurance of the unique mutations."
 
     # Consolidate records by summing copy_number for identical pcr_mutations
     awk -F, 'NR == 1 { print $0; next } { count[$1] += $2 } END { for (mutation in count) print mutation, count[mutation] }' OFS=, "$pcr_mutations" > "${pcr_mutations}.tmp" && mv "${pcr_mutations}.tmp" "$pcr_mutations"
@@ -367,6 +367,54 @@ else
     echo "No PCR mutations have been introduced."
     touch "${main_pcr_folder}/PCR_${pcr_index_number}_no_pcr_mutations.log"
 fi
+
+
+# Merge temp files with inserted real mutations into a final csv file
+
+echo "Merging true inserted mutation tracking files into a final file"
+
+# Define the output csv file name
+real_mutations="${main_pcr_folder}/PCR_${pcr_index_number}-real_inserted_mutations.csv"
+
+# List temp csv files matching the pattern
+temp_csv_names_real_mut=($(find "${main_pcr_folder}" -maxdepth 1 -type f -regextype posix-extended -regex ".*/worker_[0-9]+_temp-real_mutations\.csv"))
+
+# Initialize a flag to check if the header has been copied
+header_copied=false
+
+# Check if temp csv names array is not empty
+if [ ${#temp_csv_names_real_mut[@]} -gt 0 ]; then
+    # Loop through each file found
+    for file in "${temp_csv_names_real_mut[@]}"; do
+        # Check if the header has been copied
+        if [ "$header_copied" = false ]; then
+            # Copy the first file with header
+            cat "$file" > "$real_mutations"
+            # Set the flag indicating the header has been copied
+            header_copied=true
+        else
+            # Append the file without the header
+            tail -n +2 "$file" >> "$real_mutations"
+        fi
+    done
+    echo "Merge complete. Coutning the occurance of the unique mutations."
+
+    # Consolidate records by summing copy_number for identical pcr_mutations
+    awk -F, 'NR == 1 { print $0; next } { count[$1 "," $2] += $3 } END { for (key in count) print key, count[key] }' OFS=, "$real_mutations" > "${real_mutations}.tmp" && mv "${real_mutations}.tmp" "$real_mutations"
+
+    echo "Counting complete. Removing temporary files..."
+    
+    # Remove the original temporary files
+    rm "${temp_csv_names_real_mut[@]}"
+    
+    echo "Temporary files removed."
+else
+    # No files found, so echo the message and create an empty log file
+    echo "No true mutations have been introduced."
+    touch "${main_pcr_folder}/PCR_${pcr_index_number}_no_introduced_true_mutations.log"
+fi
+
+
 
 echo "Preparing input for the sequencing."
 

@@ -90,10 +90,6 @@ rule all:
 		expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/merging_complete.log", 
 			   sample_dir=runs.keys(), 
 			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1)),
-		expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/fragment_coordinates_lengths_pcr_{pcr_num}.csv", 
-			   sample_dir=runs.keys(), 
-			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1), 
-			   pcr_num=range(1, config["NUM_PCR"] + 1)),
 		expand(config["INPUT_DIRECTORY"] + "/mapping_reference/primers_set_bed_{pcr_num}.bed", 
 		 		pcr_num=range(1, config["NUM_PCR"] + 1)),
 		expand("{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}_R1.fastq.gz",
@@ -107,7 +103,11 @@ rule all:
 		expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_sequenced_frags.fasta.gz",
 			   sample_dir=runs.keys(),
 			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1),
-			   pcr_num=range(1, config["NUM_PCR"] + 1))
+			   pcr_num=range(1, config["NUM_PCR"] + 1)),
+		os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_2_complete.txt"),
+		os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_3_complete.txt"),
+		os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_4_complete.txt"),
+        os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_5_complete.txt")
 
 
 rule map_primers:
@@ -392,6 +392,7 @@ rule simulate_reads:
 		genereted_reads2 = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}_R2.fastq.gz"
 	params:
 		ERROR_MODEL=config.get("ERROR_MODEL", ""),
+		MODE=config.get("MODE", ""),
 		NCORE=config.get("NCORE", ""),
 		FASTA_GZ_OUTPUT=config.get("FASTA_GZ_OUTPUT", ""),
 		output_prefix = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_{pcr_num}",
@@ -400,6 +401,8 @@ rule simulate_reads:
 		command = "iss generate"
 		command += f" --fasta_list {input.fasta_list}"
 		command += f" --csv_reads_list {input.csv_list}"
+		if params.MODE:
+			command += f" --mode {params.MODE}"
 		if params.ERROR_MODEL:
 			command += f" --model {params.ERROR_MODEL}"
 		if params.FASTA_GZ_OUTPUT:
@@ -422,4 +425,98 @@ rule merging_fastas_and_cleanup:
 		"""
 		/usr/src/app/scripts/ampliseq/merging_sequenced_fasta_and_csv.sh {input.csv_list} {input.fasta_list} {output.merged_fasta}
 		rm {input.csv_list} {input.fasta_list}
+		"""
+
+rule cleanup_1:
+	input:
+		merged_fasta=expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_sequenced_frags.fasta.gz",
+									sample_dir=runs.keys(),
+			   						tech_rep=range(1, config["FRAG_REPLICATES"] + 1),
+			   						pcr_num=range(1, config["NUM_PCR"] + 1)),
+		sample_tables = "{sample_dir}/"
+	output:
+		cleanup_1_log=touch("{sample_dir}/cleanup_1_complete.txt")
+	wildcard_constraints:
+		sample_dir="|".join(runs.keys())
+	params:
+		NCORE=config.get("NCORE", 1)
+	shell:
+		"""
+		python3.11 /usr/src/app/scripts/ampliseq/aggregate_mut_parallel_ampliseq.py {input.sample_tables} --cores {params.NCORE}
+		python3.11 /usr/src/app/scripts/ampliseq/merging_sample_mut_ampliseq.py {input.sample_tables}
+		touch {output.cleanup_1_log}
+		"""
+
+rule cleanup_2:
+	input:
+		clean_up_1_log=expand("{sample_dir}/cleanup_1_complete.txt",
+								sample_dir=runs.keys()),
+		pcr_files=expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_sequenced_frags.fasta.gz",
+			   sample_dir=runs.keys(),
+			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1),
+			   pcr_num=range(1, config["NUM_PCR"] + 1))
+	output:
+		cleanup_2_log=touch(os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_2_complete.txt"))
+	shell:
+		"""
+		for file in {input.pcr_files}; do
+			dir=$(dirname $file)
+			python3.11 /usr/src/app/scripts/ampliseq/seq_mut_filter_amplicon.py $dir
+		done
+		touch {output.cleanup_2_log}
+		"""
+
+rule cleanup_3:
+	input:
+		cleanup_2_log=os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_2_complete.txt"),
+		pcr_files=expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/PCR_{pcr_num}/PCR_{pcr_num}_sequenced_frags.fasta.gz",
+			   sample_dir=runs.keys(),
+			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1),
+			   pcr_num=range(1, config["NUM_PCR"] + 1))
+	output:
+		cleanup_3_log=touch(os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_3_complete.txt"))
+	shell:
+		"""
+		for file in {input.pcr_files}; do
+			dir=$(dirname $file)
+			find $dir -name '*_filtered_amp_fragments.csv' -exec rm {{}} \;
+			find $dir -name '*_reads_per_fragment.csv' -exec rm {{}} \;
+		done
+		touch {output.cleanup_3_log}
+		"""
+
+rule cleanup_4:
+	input:
+		cleanup_3_log=os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_3_complete.txt"),
+		frag_coordinates=expand("{sample_dir}/tech_replicate_{tech_rep}/PCR/fragment_coordinates_lengths_pcr_{pcr_num}.csv", 
+								sample_dir=runs.keys(), 
+								tech_rep=range(1, config["FRAG_REPLICATES"] + 1), 
+								pcr_num=range(1, config["NUM_PCR"] + 1))
+	output:
+		cleanup_4_log=touch(os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_4_complete.txt"))
+	shell:
+		"""
+		for file in {input.frag_coordinates}; do
+			rm $file
+		done
+		touch {output.cleanup_4_log}
+		"""
+
+rule cleanup_5:
+	input:
+		cleanup_4_log=os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_4_complete.txt"),
+		tech_rep_files=expand("{sample_dir}/tech_replicate_{tech_rep}/",
+							  sample_dir=runs.keys(),
+							  tech_rep=range(1, config["FRAG_REPLICATES"] + 1))
+	output:
+		cleanup_5_log=touch(os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_5_complete.txt"))
+	shell:
+		"""
+		for dir in {input.tech_rep_files}; do
+			echo "Cleaning up directory: $dir"
+			find $dir -type f -name '*_fragment_coordinates.csv' -exec rm {{}} \;
+			find $dir -type f -name '*_fragmentation_selected.csv' -exec rm {{}} \;
+			find $dir -type f -name '*_new_start.csv' -exec rm {{}} \;
+		done
+		touch {output.cleanup_5_log}
 		"""

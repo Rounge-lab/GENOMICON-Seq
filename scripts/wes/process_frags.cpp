@@ -54,12 +54,13 @@ std::string queryDatabase(sqlite3* db, const std::string& chrName, int start, in
     return nonmutatedSequence;
 }
 
-
-void applyMutations(std::string& sequence, const std::vector<std::pair<int, char>>& mutations) {
+void applyMutations(std::string& sequence, const std::vector<std::pair<int, char>>& mutations, std::map<std::string, int>& mutationCount, int fragmentStart, const std::string& chrName) {
     for (const auto& mutation : mutations) {
         int pos = mutation.first;
         char nucleotide = mutation.second;
         if (pos >= 0 && pos < sequence.length()) {
+            std::string mutationKey = chrName + "," + std::to_string(fragmentStart + pos) + nucleotide;
+            mutationCount[mutationKey]++;
             sequence[pos] = nucleotide;
         }
     }
@@ -106,8 +107,16 @@ void writeFastaChunks(const std::string& outputBasePath, const std::string& fast
     }
 }
 
+void writeMutationCount(const std::string& outputBasePath, const std::map<std::string, int>& mutationCount) {
+    std::ofstream outFile(outputBasePath + "-mutation-count.csv");
+    for (const auto& entry : mutationCount) {
+        outFile << entry.first << "," << entry.second << "\n";
+    }
+    outFile.close();
+}
+
 std::string processFragment(const std::string &fragmentRow, const std::map<std::string, std::string> &genomeToMutations,
-                            const std::string &sqlDatabasePath, std::string &lastChrName, sqlite3* &db, std::mt19937& gen) {
+                            const std::string &sqlDatabasePath, std::string &lastChrName, sqlite3* &db, std::mt19937& gen, std::map<std::string, int>& mutationCount) {
     // Split the input row into constituent parts
     std::vector<std::string> row = split(fragmentRow, ';');
     std::string fragmentName = row[0];
@@ -145,7 +154,7 @@ std::string processFragment(const std::string &fragmentRow, const std::map<std::
     }
 
     // Apply any genomic and PCR-induced mutations
-    applyMutations(nonmutatedSequence, filteredMutations);
+    applyMutations(nonmutatedSequence, filteredMutations, mutationCount, fragmentStart, chrName);
     mutatePcrSequence(nonmutatedSequence, pcrMutations, gen);
 
     // Format mutations for output
@@ -155,7 +164,6 @@ std::string processFragment(const std::string &fragmentRow, const std::map<std::
     // Return the formatted sequence
     return ">" + fragmentName + "_" + pcrMutations + "\n" + nonmutatedSequence + "\n";
 }
-
 
 int main(int argc, char* argv[]) {
     if (argc < 6) {
@@ -210,8 +218,10 @@ int main(int argc, char* argv[]) {
     std::string lastChrName = "";
     sqlite3* db = nullptr;  // Initialize the database pointer to null
 
+    std::map<std::string, int> mutationCount;
+
     while (std::getline(pcrTableFile, line)) {
-        std::string fastaSequence = processFragment(line, genomeToMutations, sqlDatabasePath, lastChrName, db, gen);
+        std::string fastaSequence = processFragment(line, genomeToMutations, sqlDatabasePath, lastChrName, db, gen, mutationCount);
         writeFastaChunks(outputBasePath, fastaSequence, fileCounter, buffer, currentSize);
     }
 
@@ -226,6 +236,8 @@ int main(int argc, char* argv[]) {
     }
 
     pcrTableFile.close();
+
+    writeMutationCount(outputBasePath, mutationCount);
 
     return 0;
 }

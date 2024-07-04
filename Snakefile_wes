@@ -114,7 +114,10 @@ rule all:
 		expand("{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_R2.fastq.gz",
 			   sample_dir=runs.keys(),
 			   tech_rep=range(1, config["FRAG_REPLICATES"] + 1)),
-		os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_complete.txt")
+		os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_1_complete.txt"),
+		expand("{sample_dir}/cleanup_2_complete.txt",
+		 		sample_dir=runs.keys()),
+		os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_3_complete.txt")
 
 		
 
@@ -123,10 +126,13 @@ rule Making_fasta_lengths_info:
 		FASTA_PATH = FASTA_PATH
 	output:
 		fasta_length_csv = os.path.join(config["INPUT_DIRECTORY"], "fasta_lengths.csv")
-	shell:
-		"""
-		python3 /usr/src/app/scripts/wes/fasta_lengths_extraction.py {input.FASTA_PATH} {output.fasta_length_csv}
-		"""
+	run:
+		import os
+		# Remove the output file if it already exists
+		if os.path.exists(output.fasta_length_csv):
+			os.remove(output.fasta_length_csv)
+		# Execute the Python script
+		shell("python3 /usr/src/app/scripts/wes/fasta_lengths_extraction.py {input.FASTA_PATH} {output.fasta_length_csv}")
 
 
 rule Making_SQL_database:
@@ -433,6 +439,7 @@ rule simulate_reads:
 		genereted_reads2 = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR_R2.fastq.gz"
 	params:
 		ERROR_MODEL=config.get("ERROR_MODEL", ""),
+		MODE=config.get("MODE", ""),
 		NCORE=config.get("NCORE", ""),
 		FASTA_GZ_OUTPUT=config.get("FASTA_GZ_OUTPUT", ""),
 		output_prefix = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR",
@@ -441,6 +448,8 @@ rule simulate_reads:
 		command = "iss generate"
 		command += f" --fasta_list {input.fasta_list}"
 		command += f" --csv_reads_list {input.csv_list}"
+		if params.MODE:
+			command += f" --mode {params.MODE}"
 		if params.ERROR_MODEL:
 			command += f" --model {params.ERROR_MODEL}"
 		if params.FASTA_GZ_OUTPUT:
@@ -466,7 +475,7 @@ rule merging_fastas_and_read_csvs:
 		"""
 
 
-rule cleanup:
+rule cleanup_1:
 	input:
 		merged_fastas = expand("{sample_dir}/tech_replicate_{tech_rep}/PCR_reaction/sequenced_frags.fasta.gz",
 									   sample_dir=runs.keys(),
@@ -476,12 +485,66 @@ rule cleanup:
 									   tech_rep=range(1, max([len(replicates) for replicates in runs.values()]) + 1)),
 		pcr_filtered_files = expand("{sample_dir}/tech_replicate_{tech_rep}/PCR_filtered.csv",
 									sample_dir=runs.keys(),
-									tech_rep=range(1, max([len(replicates) for replicates in runs.values()]) + 1))
+									tech_rep=range(1, max([len(replicates) for replicates in runs.values()]) + 1)),
+		frag_selected_dirs = expand("{sample_dir}/tech_replicate_{tech_rep}",
+							sample_dir=runs.keys(), 
+							tech_rep=range(1, max([len(replicates) for replicates in runs.values()]) + 1))
+	params:
+		NCORE=config.get("NCORE", "")
 	output:
-		touch(os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_complete.txt"))
+		touch(os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_1_complete.txt"))
 	shell:
 		"""
 		rm -f {input.pcr_filtered_files}
+		for dir in {input.frag_selected_dirs}; do
+			find $dir -name '*_fragmentation_selected.csv' -exec rm {{}} +
+			if [ -f $dir/PCR_reaction/read_pairs_per_fragment.csv ]; then
+				rm -f $dir/PCR_reaction/read_pairs_per_fragment.csv
+			fi
+		done
 		touch {output}
 		"""
+rule cleanup_2:
+	input:
+		clean_up_1_log = os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_1_complete.txt"),
+		sample_tables = "{sample_dir}/"
+	output:
+		clean_up_2_log = touch("{sample_dir}/cleanup_2_complete.txt")
+	wildcard_constraints:
+		sample_dir="|".join(runs.keys())
+	params:
+		NCORE=config.get("NCORE", 1)
+	shell:
+		"""
+		python3.11 /usr/src/app/scripts/wes/aggregate_mut_parallel_v3.py {input.sample_tables} --cores {params.NCORE}
+		python3.11 /usr/src/app/scripts/wes/merging_sample_mut_v2.py {input.sample_tables}
+		touch {output.clean_up_2_log}
+		"""
 
+rule cleanup_3:
+	input:
+		clean_up_2_log = expand("{sample_dir}/cleanup_2_complete.txt",
+								sample_dir=runs.keys()),
+		pcr_files = expand("{sample_dir}/tech_replicate_{tech_rep}",
+						   sample_dir=runs.keys(), 
+						   tech_rep=range(1, max([len(replicates) for replicates in runs.values()]) + 1))
+	output:
+		clean_up_3_log = touch(os.path.join(config["OUTPUT_DIRECTORY"], "cleanup_3_complete.txt"))
+	wildcard_constraints:
+		sample_dir="|".join(runs.keys())
+	shell:
+		"""
+		for dir in {input.pcr_files}; do
+			if [ -f $dir/PCR_reaction/seq_mutation_counts.csv ]; then
+				python3.11 /usr/src/app/scripts/wes/seq_mut_filter.py $dir/PCR_reaction/seq_mutation_counts.csv
+			fi
+		done
+
+		for dir in {input.pcr_files}; do
+			if [ -f $dir/PCR_reaction/PCR_filtered_amp_fragments.csv ]; then
+				rm -f $dir/PCR_reaction/PCR_filtered_amp_fragments.csv
+			fi
+		done
+
+		touch {output.clean_up_3_log}
+		"""
