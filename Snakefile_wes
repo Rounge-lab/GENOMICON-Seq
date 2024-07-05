@@ -442,6 +442,7 @@ rule simulate_reads:
 		MODE=config.get("MODE", ""),
 		NCORE=config.get("NCORE", ""),
 		FASTA_GZ_OUTPUT=config.get("FASTA_GZ_OUTPUT", ""),
+		GC_BIAS=config.get("GC_BIAS", ""),
 		output_prefix = "{sample_dir}/generated_reads/tech_replicate_{tech_rep}_PCR",
 		seed = lambda wildcards: int(runs[wildcards.sample_dir][int(wildcards.tech_rep) - 1][0]),
 	run:
@@ -456,6 +457,8 @@ rule simulate_reads:
 			command += f" {params.FASTA_GZ_OUTPUT}"
 		if params.NCORE:
 			command += f" --cpus {params.NCORE}"
+		if params.GC_BIAS:
+			command += f" {params.GC_BIAS}"
 		command += f" --seed {params.seed}" 
 		command += f" --output {params.output_prefix}"
 		shell(command)

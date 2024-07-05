@@ -7,30 +7,30 @@ PROJECT: GenomiconSeq - Whole exome sequencing
 # ================= General arguments ==================
 
 NUM_SAMPLES: 1 
-FRAG_REPLICATES: 1 
+FRAG_REPLICATES: 1
 NCORE: 10  
 SEED: ""  
-OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_6" 
+OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_wes_1" 
 INPUT_DIRECTORY: "input_data_wes"
-FASTA_FILE: "chr1_only.fasta.gz" 
+FASTA_FILE: "chr1_chr2.fasta.gz" 
 SBS_SIGNATURES: ""
 
-# ================== Sample parameters ==================
+# ================== Configuration for 1defining_seq_and_mut ==================
 
-NR_COPIES: "10"
-MULTIFASTA_COPIES: "" 
 MUT_CONTEXT: "TCA,TCT,TCC"
 TS_TV_RATIO: "3:1" 
-VARIANT_PROBABILITY_TABLE: ""  
-MUT_GENOME_FRACTION: "" 
-FRACTION_POSITION: "" 
-MUTATION_RATE: "1e-4" 
+VARIANT_PROBABILITY_TABLE: "" 
+NR_COPIES: "50" 
+MULTIFASTA_COPIES: "" 
+MUT_GENOME_FRACTION: "0.2" 
+FRACTION_POSITION: "0.001" 
+MUTATION_RATE: "" 
 
 
 # ================== Whole Human Exom or Specific probes ==================
 PROBES_FASTA: ""
-PROBES_BED: "xgen-exome-research-panel-v2-probes-hg38_filtered_chr1.bed" #probe binding coordinates
-PROBES_TARGES: "xgen-exome-research-panel-v2-targets-hg38_filtered_chr1.bed" # regions which probes target - it can also be 
+PROBES_BED: "xgen-exome-research-panel-v2-probes-hg38_short_all.bed" #probe binding coordinates
+PROBES_TARGES: "xgen-exome-research-panel-v2-targets-hg38_short_all.bed" # regions which probes target - it can also be 
 
 # ================== Configuration for Fragmentation  ==================
 
@@ -41,15 +41,16 @@ MATCHING_LENGTH: "100"
 
 # ================== Configuration for PCR ==================
 
-NUM_CYCLES: "8"
 K_PARAMETER_pcr: "0.3" 
 MIDPOINT_CYCLE: "20" 
-
+NUM_CYCLES: "8"
 
 # ================= Sequencing Parameteres ==================
 
 NUM_READS: "1000000" 
+MODE: ""
 ERROR_MODEL: "novaseq" 
 FASTA_GZ_OUTPUT: "--compress" 
 OPT_FRAG_MODE: "NO" 
 K_PARAMETER_seq: "0.05" 
+GC_BIAS: ""

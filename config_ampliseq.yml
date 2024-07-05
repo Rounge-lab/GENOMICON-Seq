@@ -11,17 +11,16 @@ FRAG_REPLICATES: 1
 NCORE: 8  
 SEED: "892" 
 CIRCULAR: "Y" 
-OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_14" #use absolute path
+OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_ampliseq_1" #use absolute path
 INPUT_DIRECTORY: "input_data_ampliseq" 
 FASTA_FILE: "HPV16.fa" 
+# ================== Configuration for 1defining_seq_and_mut ==================
 
-# ================== Sample parameters ==================
-
-NR_COPIES: "100" 
-MULTIFASTA_COPIES: ""
 MUT_CONTEXT: "ATC,CTA" 
 TS_TV_RATIO: "3:1" 
 VARIANT_PROBABILITY_TABLE: "" 
+NR_COPIES: "10" 
+MULTIFASTA_COPIES: ""
 MUT_GENOME_FRACTION: "0.2" 
 FRACTION_POSITION: "0.1" 
 MUTATION_RATE: "" 
@@ -38,13 +37,15 @@ AMPLICON_LENGTH: 250
 K_PARAMETER: "0.3" 
 MIDPOINT_CYCLE: "" 
 NUM_CYCLES: "25" 
-POL_ERROR_RATE: "1e-4"
+POL_ERROR_RATE: "1e-5"
 FRACTION_PCR_SEQUENCING: "0.005" 
 
 # ================= Sequencing Parameteres ==================
 
 NUM_READS: "100000" 
-ERROR_MODEL: "novaseq" 
+MODE: "perfect"
+ERROR_MODEL: "" 
 FASTA_GZ_OUTPUT: "--compress" 
 OPT_FRAG_LENGTH: "NO" #options median, defualt, fixed {value}, quartile {1,2,3,4}
 K_PARAMETER_seq: "" 
+GC_BIAS: "--gc_bias"
