@@ -27,8 +27,9 @@ def process_files(mutation_occurrence_file, detailed_mutation_file, output_file)
         result = pd.merge(df2, df1, on=['position', 'Variant'], how='left')
         result['occurrence'] = result['occurrence'].fillna(0).astype(int)
         
-        # Drop the 'pos_var' column
-        result.drop(columns='pos_var', inplace=True)
+       # Drop the 'pos_var' column if it exists
+        if 'pos_var' in result.columns:
+            result.drop(columns='pos_var', inplace=True)
         
         result = result[result['occurrence'] > 0]
 
