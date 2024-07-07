@@ -194,7 +194,7 @@ void mutatePcrSequence(std::string& sequence, const std::string& pcrMutations, s
 }
 
 void writeFastaChunks(const std::string& outputBasePath, const std::string& fastaContent, size_t& fileCounter, std::string& buffer, size_t& currentSize) {
-    size_t chunkSizeLimit = 1048576; // 1MB in bytes
+    size_t chunkSizeLimit = 10485760; // 1MB in bytes
     buffer += fastaContent;
     currentSize += fastaContent.size();
 
