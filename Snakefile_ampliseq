@@ -183,9 +183,9 @@ rule defining_seq_and_mut:
 		NCORE=config.get("NCORE", ""),
 		MUT_CONTEXT=config.get("MUT_CONTEXT", ""),
 		TS_TV_RATIO=config.get("TS_TV_RATIO", ""),
-		VARIANT_PROBABILITY_TABLE=lambda wildcards: os.path.join(config["INPUT_DIRECTORY"], config["VARIANT_PROBABILITY_TABLE"]) if config["VARIANT_PROBABILITY_TABLE"] else "",
+		SUBSTITUTION_PROBABILITY_TABLE=lambda wildcards: os.path.join(config["INPUT_DIRECTORY"], config["SUBSTITUTION_PROBABILITY_TABLE"]) if config["SUBSTITUTION_PROBABILITY_TABLE"] else "",
 		NR_COPIES=config.get("NR_COPIES", ""),
-		MULTIFASTA_COPIES=lambda wildcards: os.path.join(config["INPUT_DIRECTORY"], config["MULTIFASTA_COPIES"]) if config["MULTIFASTA_COPIES"] else "",
+		MULTIFASTA_COPIES_TABLE=lambda wildcards: os.path.join(config["INPUT_DIRECTORY"], config["MULTIFASTA_COPIES_TABLE"]) if config["MULTIFASTA_COPIES_TABLE"] else "",
 		MUT_GENOME_FRACTION=config.get("MUT_GENOME_FRACTION", ""),
 		FRACTION_POSITION=config.get("FRACTION_POSITION", ""),
 		MUTATION_RATE=config.get("MUTATION_RATE", "")
@@ -201,12 +201,12 @@ rule defining_seq_and_mut:
 			command += f" --mutational_context {params.MUT_CONTEXT}"
 		if params.TS_TV_RATIO:
 			command += f" --Ts_Tv_ratio {params.TS_TV_RATIO}"
-		if params.VARIANT_PROBABILITY_TABLE:
-			command += f" --variant_probability_table {params.VARIANT_PROBABILITY_TABLE}"
+		if params.SUBSTITUTION_PROBABILITY_TABLE:
+			command += f" --variant_probability_table {params.SUBSTITUTION_PROBABILITY_TABLE}"
 		if params.NR_COPIES:
 			command += f" --nr_copies {params.NR_COPIES}"
-		if params.MULTIFASTA_COPIES:
-			command += f" --multifasta_copies {params.MULTIFASTA_COPIES}"
+		if params.MULTIFASTA_COPIES_TABLE:
+			command += f" --multifasta_copies {params.MULTIFASTA_COPIES_TABLE}"
 		if params.MUT_GENOME_FRACTION:
 			command += f" --mut_genome_fraction {params.MUT_GENOME_FRACTION}"
 		if params.FRACTION_POSITION:
@@ -348,7 +348,7 @@ rule pcr_sim:
 		POL_ERROR_RATE=config.get("POL_ERROR_RATE", ""),
 		NUM_CYCLES=config.get("NUM_CYCLES", ""),
 		MIDPOINT_CYCLE=config.get("MIDPOINT_CYCLE", ""),
-		K_PARAMETER_pcr=config.get("K_PARAMETER", ""),
+		K_PARAMETER_pcr=config.get("K_PARAMETER_pcr", ""),
 		NUM_READS=config.get("NUM_READS", ""),
 		OPT_FRAG_LENGTH=config.get("OPT_FRAG_LENGTH", ""),
 		K_PARAMETER_seq=config.get("K_PARAMETER_seq", ""),

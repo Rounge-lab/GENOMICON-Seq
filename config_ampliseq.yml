@@ -1,51 +1,94 @@
 #Please check the parameters, and adjust them according to your project needs.
 
 # Project name
-PROJECT: GenomiconSeq - AmpliconSeq
+PROJECT: GENOMICON-Seq - Amplicon Sequencing
 
 
-# ================= General arguments ==================
+# =======================================================
+# ================= GENERAL PARAMETERS ==================
+# =======================================================
 
 NUM_SAMPLES: 1
 FRAG_REPLICATES: 1 
 NCORE: 8  
 SEED: "892" 
-CIRCULAR: "Y" 
-OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_ampliseq_1" #use absolute path
+OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_ampliseq" 
 INPUT_DIRECTORY: "input_data_ampliseq" 
 FASTA_FILE: "HPV16.fa" 
-# ================== Configuration for 1defining_seq_and_mut ==================
+CIRCULAR: "Y" 
+
+# =======================================================
+# ================== SAMPLE PARAMETERS ==================
+# =======================================================
+
+# 1. GENOME COPIES IN THE SAMPLE
+# ==============================
+
+NR_COPIES: "1000" 
+MULTIFASTA_COPIES_TABLE: ""
+
+# 2. MUTATION TARGETS
+# ===================
 
 MUT_CONTEXT: "ATC,CTA" 
+
+# 3. SUBSTITUTION TYPE
+# ====================
+
 TS_TV_RATIO: "3:1" 
-VARIANT_PROBABILITY_TABLE: "" 
-NR_COPIES: "10" 
-MULTIFASTA_COPIES: ""
-MUT_GENOME_FRACTION: "0.2" 
-FRACTION_POSITION: "0.1" 
-MUTATION_RATE: "" 
+SUBSTITUTION_PROBABILITY_TABLE: "" 
+
+# 4. MUTATION MODE
+# ================
+
+# 4.a DETERMINISTIC MODE
+# ======================
+
+MUT_GENOME_FRACTION: "" 
+FRACTION_POSITION: "" 
+
+# 4.b SPECIFIC MUTATION RATE MODE
+# ===============================
+
+MUTATION_RATE: "1e-5" 
 
 
-# ================== Configuration for Fragmentation ================== 
-FRAGMENT_LENGTH: "250:550" 
+# =============================================================
+# ================== FRGMENTATION PARAMETERS ==================
+# =============================================================
+
 FRAGMENT_FRACTION: "1"
-# ================== Configuration for PCR ==================
+FRAGMENT_LENGTH: "250:550" 
+
+# ====================================================
+# ================== PCR PARAMETERS ==================
+# ====================================================
 
 PRIMERS: "all_primers.csv" 
 NUM_PCR: 2 
 AMPLICON_LENGTH: 250 
-K_PARAMETER: "0.3" 
-MIDPOINT_CYCLE: "" 
 NUM_CYCLES: "25" 
 POL_ERROR_RATE: "1e-5"
 FRACTION_PCR_SEQUENCING: "0.005" 
 
-# ================= Sequencing Parameteres ==================
+# ADVANCED PCR PARAMETERES
+# ========================
+
+K_PARAMETER_pcr: "1" 
+MIDPOINT_CYCLE: "" 
+
+# ==========================================================
+# ================= SEQUENCING PARAMETERS ==================
+# ==========================================================
 
 NUM_READS: "100000" 
-MODE: "perfect"
-ERROR_MODEL: "" 
+MODE: ""
+ERROR_MODEL: "novaseq" 
 FASTA_GZ_OUTPUT: "--compress" 
-OPT_FRAG_LENGTH: "NO" #options median, defualt, fixed {value}, quartile {1,2,3,4}
-K_PARAMETER_seq: "" 
 GC_BIAS: "--gc_bias"
+OPT_FRAG_LENGTH: "NO"
+
+# ADVANCED SEQUENCING PARAMETER
+# =============================
+K_PARAMETER_seq: "0.005" 
+

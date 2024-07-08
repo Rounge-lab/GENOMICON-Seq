@@ -5,6 +5,7 @@
 1. [Introduction](#Introduction)
 2. [Quick set-up](#quick-set-up)
 3. [Quick start](#quick-start)
+4. [Computational power and processing time](#computational-power-and-processing-time)
 4. [Simulation parameters](#simulation-parameters)
 5. [Amplicon sequencing simulation parameters](#Amplicon-sequencing-simulation-parameters)
 6. [WES sequencing simulation parameters](#WES-sequencing-simulation-parameters)
@@ -15,7 +16,15 @@
 
 ## Introduction
 
-Welcome to the genetic exploration through GENOMICON-Seq. Our tool simulates amplicon sequencing and whole exome sequencing (WES). We offer users a virtual playground to generate, fragment, amplify or probe-capture enrich fragments, and sequence virtual samples with a customizable mutation-to-noise ratio (Figure 1). GENOMICON-Seq generates samples with various mutation levels that will be submitted to simulated laboratory preparation steps and sequencing. Each of these processes introduces customizable noise in the results. The users will be able to test how various introduced noise masks the detection of inserted mutations offering deeper insights and guiding laboratory improvements for more robust results. Dive into GENOMICON-Seq and let it simulate the path to refined mutation detection analysis.
+Welcome to GENOMICON-Seq, a tool for genetic exploration through simulation. GENOMICON-Seq is designed to simulate both amplicon sequencing and whole exome sequencing (WES), providing a robust platform for users to experiment with virtual genetic samples (Figure 1).
+
+At the core of GENOMICON-Seq is the ability to generate samples with varying mutation frequencies, which are then subjected to a simulated library preparation process. This unique feature allows users to introduce and adjust the level of noise within each simulation, effectively masking the detection of real mutations to various extents. Such simulations are critical in demonstrating how different noise levels can obscure mutation detection, offering valuable insights for refining laboratory techniques and enhancing mutation analysis.
+
+Users can customize the mutation-to-noise ratio in their virtual samples, exploring a range of different scenarios facilitating a deeper understanding of the dynamic interplay between genetic variations and the technical limitations of sequencing technologies.
+
+Dive into GENOMICON-Seq and harness the power of simulation to advance your mutation detection strategies and guide improvements in laboratory practices. 
+
+
 
 ![Example Image](img/all_spteps_illustrations.png)
 
@@ -40,22 +49,16 @@ Here we will show how to set up and run the simulations, briefly inroduce the pa
 
 ## Quick set-up
 
-The GENOMICON-Seq represents a collection of scripts written in R, C++, PowerShell Python, and well-known bioinformatic tools, while the whole process is orchestrated by Snakemake. Currently, it is only available as a docker container. For a quick start, the command under will download and run the gthe installation file that will, in turn, download the docker container, play dataset, Snakefiles and their config.yml files, and set everything up.
+The GENOMICON-Seq represents a collection of scripts written in R, C++, PowerShell Python, and well-known bioinformatic tools, while the whole process is orchestrated by Snakemake. Currently, it is only available as a Docker container. 
+
+Please ensure that Docker is installed on your system before proceeding with the installation.
+
+To quickly set up GENOMICON-Seq, execute the following commands in your terminal. This will download and run the installation script that sets up the Docker container, play dataset, Snakefiles, and their corresponding configuration files:
 
 The docker has to be installed!
 ```
-curl -L https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/
-```
-
-```
-genomiconseq_install.sh -o genomiconseq_install.sh
-```
-
-```
+curl -L https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/genomiconseq_install.sh -o genomiconseq_install.sh
 chmod +x genomiconseq_install.sh
-```
-
-```
 ./genomiconseq_install.sh
 ```
 
@@ -64,8 +67,6 @@ You can also download the docker container manually:
 ```
 docker pull mimsto86/genomicon-seq:v1.0
 ```
-
-The scripts necessary for running are integrated into the container.
 
 A base direcotry structure would look like this after the runnig of the genomicon_install.sh
 
@@ -77,12 +78,26 @@ GENOMICON-Seq
 ├── config_ampliseq.yml
 ├── config_wes.yml
 ├── Snakefile_ampliseq
-└──Snakefile_wes
+└── Snakefile_wes
 ```
+
+Playset is ment for testing purposes only! For amplicon sequencing simulation, human papillomavirus (HPV) type 16 will be used as an example. The necessary files will be in the `input_data_ampliseq`. The downloaded `config_ampliseq.yml` is set up for a test run. 
+
+For WES simulation, chromosome 1 sequence will be used as an example. The necessary files will be in the `input_data_wes`. The downloaded `config_wes.yml` is set up for a test run. 
+
+The scripts necessary for running the simulations are integrated into the container.
+
+In addition, during the simulation run, SQL-databases for each sequence in fasta file will be made. While for small genomes (several Mb) the generation time will not take long, for WES simulation on a whole human genome, generation time might take several hours. The premade SQL-databse for each hg38 chromosome is available for downloading here:
+
+LINK
+
+We also reccomend downloading the premade human genome (hg38) fasta file where chromosome headers correspond to the SQL-database names here:
+
+LINK
 
 ## Quick start
 
-As the simulation would require some substantial computational power (we will cover that later), a playset will be used to test if everything is functional and as an example throughout this manual. The genome for amplicon sequencing simulation is the human papillomavirus (HPV) type 16 genome, 7906bp. The parameters in the confing_ampliseq.yml are specified for testing purposes, each parameter will be explained in the next chapter. To run the simulation, run the following command from the main folder where the Snakemake_ampliseq and config_ampliseq.yml are:
+As the simulation would require some substantial computational power (we will cover that later), a playset will be used to test run. The genome for amplicon sequencing simulation is the double-stranded DNA human HPV16 genome, 7906bp. The parameters in the confing_ampliseq.yml are specified for testing purposes, each parameter will be explained in the next chapter. To run the simulation, run the following command from the main folder where the Snakemake_ampliseq and config_ampliseq.yml are:
 
 ```
 docker run -it -v $(pwd):/usr/src/app/pipeline -w /usr/src/app/pipeline mimsto86/genomicon-seq:v1.0 snakemake -j 1 -p -s ./Snakefile_ampliseq --configfile ./config_ampliseq.yml
@@ -94,7 +109,25 @@ For simplicity and testing purposes, only human chromosome 1 will be used in the
 docker run -it -v $(pwd):/usr/src/app/pipeline -w /usr/src/app/pipeline mimsto86/genomicon-seq:v1.0 snakemake -j 1 -p -s ./Snakefile_wes --configfile ./config_wes.yml
 ```
 
-A new folder `Output_data_ampliseq` or `Output_data_wes` will be created, depending on the chosen simulation. A more detailed info about the outputs can be found here, [Main outputs](#Main-outpus) 
+A new folder `Output_data_ampliseq` or `Output_data_wes` will be created, depending on the chosen simulation. A more detailed info about the outputs can be found here, [Main outputs](#Main-outpus).
+
+## Computational power and processing time
+
+GENOMICON-Seq is designed to run in High Performance Computing (HPC) environments due to its computational demands. For testing and lighter tasks, it can also run on personal computers. Here are the details of the systems we have used for testing and developement:
+
+MacOS Sonoma 14.5
+
+Processor: 2.6 GHz Six-core Intel Core i7
+RAM: 16 GB 2667 MHz DDR4
+
+Ubuntu 20
+
+Processor:
+RAM: 
+
+0n a HPC (we used [edulcoud](https://www.uio.no/english/services/it/research/platforms/edu-research/)), for larger number of genome copies in amplicon sequencing simulation (we used 200 000 genome copies of HPV16) we used 60 CPUs and 4GB per CPU in our runs. In WES runs we used 60 CPUs and 8GB per run (when the copy number of complete human genome hg38 or only chromosome 1 was 2500). Depending on whether the complete genome was run or only chromosome 1, and the parameter values the simulation time was approximately 18-25h for the complete human genome, and approximately 1h for chromosome 1.  
+
+GENOMICON-Seq includes a wide range of adjustable parameters that can significantly affect the tool's performance and resource demands. Due to this variability, it is challenging to predict the exact memory requirements, optimal number of processor cores, or the time needed to complete the processes. We recommend conducting initial tests for each new scenario to determine the appropriate configurations that best meet your computational and analysis needs.
 
 ## Simulation parameters
 Most of the parameters are identical between simulation, however due to the nature of the simulated processes, some parameters are specific for amplicon sequencing simulation, while others can be found only in the WES simulation.
