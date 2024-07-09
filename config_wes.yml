@@ -14,7 +14,7 @@ NCORE: 10
 SEED: ""  
 OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_wes" 
 INPUT_DIRECTORY: "input_data_wes"
-FASTA_FILE: "chr1_chr2.fasta.gz" 
+FASTA_FILE: "chr1.fasta.gz" 
 
 
 # =======================================================
@@ -24,13 +24,13 @@ FASTA_FILE: "chr1_chr2.fasta.gz"
 # 1. GENOME COPIES IN THE SAMPLE
 # ==============================
 
-NR_COPIES: "50" 
+NR_COPIES: "500" 
 MULTIFASTA_COPIES_TABLE: "" 
 
 # 2. MUTATION TARGETS
 # ===================
 
-MUT_CONTEXT: "TCA,TCT,TCC"
+MUT_CONTEXT: "TCA,TCT,TCC,TCG"
 
 # 3. SUBSTITUTION TYPE
 # ====================
@@ -70,8 +70,8 @@ MAX_FRAGMENT_LENGTH: "1000"
 # ================== PROBE CAPTURE ENRICHMENT ==================
 # ==============================================================
 PROBES_FASTA: ""
-PROBES_BED: "xgen-exome-research-panel-v2-probes-hg38_short_all.bed" #probe binding coordinates
-PROBES_TARGES: "xgen-exome-research-panel-v2-targets-hg38_short_all.bed" # regions which probes target - it can also be 
+PROBES_BED: "xgen-exome-research-panel-v2-probes-hg38_filtered_chr1.bed" #probe binding coordinates
+PROBES_TARGES: "xgen-exome-research-panel-v2-targets-hg38_filtered_chr1.bed" # regions which probes target - it can also be 
 MATCHING_LENGTH: "100" 
 
 # ====================================================
