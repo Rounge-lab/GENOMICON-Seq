@@ -56,7 +56,7 @@ Please ensure that Docker is installed on your system before proceeding with the
 To quickly set up GENOMICON-Seq, execute the following commands in your terminal. This will download and run the installation script that sets up the Docker container, play dataset, Snakefiles, and their corresponding configuration files:
 
 ```
-curl -L https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/genomiconseq_install.sh -o genomiconseq_install.sh
+curl -L https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/genomicon_setup.sh -o genomiconseq_install.sh
 chmod +x genomicon_setup.sh
 ./genomicon_setup.sh
 ```
@@ -101,7 +101,7 @@ For amplicon sequencing simulation, human papillomavirus (HPV) type 16 will be u
 
 For WES simulation, chromosome 1 sequence will be used as an example. The necessary files will be in the `input_data_wes`. The downloaded `config_wes.yml` is set up for a test run. Check the chapter [Main inputs](#Main-inputs) for more information about each input file, and [WES sequencing simulation parameters](#WES-sequencing-simulation-parameters) for detailed overview of the parameters and their usage.
 
-The scripts necessary for running the simulations are integrated into the container, but can be accessed here: (scripts)[scripts/]. Read generation depends on the modified [InSilicoSeq](https://insilicoseq.readthedocs.io/en/latest/index.html) (v1.6.0), modified InSilicoSeq scripts can be found here: (modified_iss_scripts)[modified_iss_scripts/].
+The scripts necessary for running the simulations are integrated into the container, but can be accessed here: (scripts)[scripts/]. Read generation depends on the modified [InSilicoSeq](https://insilicoseq.readthedocs.io/en/latest/index.html) (v1.6.0), modified InSilicoSeq scripts can be found here: [modified_iss_scripts](modified_iss_scripts/).
 
 In addition, during the simulation run, SQL-databases for each sequence in a fasta file will be generated. While for small genomes (several Mb) the generation time will not be long, for `WES simulation` on a `whole human genome`, generation time might take several hours. The premade SQL-database for each hg38 chromosome is available for downloading here [SQL_database_whole_human_genome](https://zenodo.org/records/12683302/files/SQL_database_human.tar.gz). The packed database size is 21.8 GB, when unpacked its size is 99.8 GB.   
 
