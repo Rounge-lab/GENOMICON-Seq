@@ -45,7 +45,7 @@ D. control the sequencing process, by specifying the number of reads that will b
 
 The main output from each simulation are the generated FASTQ.GZ files, and overview of the muations and their frequencies after the sample generation and after the simulated library preparation processes. 
 
-Here we will show how to set up and run the simulations, briefly inroduce the paramters, main input and main outputs. However, for a more detailed explanation please see the full GENOMICON-Seq manual. 
+Here we will show how to set up and run the simulations, briefly inroduce the paramters, main input and main outputs. However, for a more detailed explanation about the design and theoretical background please see the full GENOMICON-Seq manual. 
 
 ## Quick set-up
 
@@ -58,46 +58,59 @@ To quickly set up GENOMICON-Seq, execute the following commands in your terminal
 The docker has to be installed!
 ```
 curl -L https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/genomiconseq_install.sh -o genomiconseq_install.sh
-chmod +x genomiconseq_install.sh
-./genomiconseq_install.sh
+chmod +x genomicon_setup.sh
+./genomicon_setup.sh
 ```
 
-You can also download the docker container manually:
+Use arguments `--ampliseq` or `--wes` when running the `genomicon_setup.sh` to download files/scripts necessary for either amplicon sequenicng or WES simulation. Whitout the arguments, the setup will downaload files/scripts for both simulations. 
 
-```
-docker pull mimsto86/genomicon-seq:v1.0
-```
 
-A base direcotry structure would look like this after the runnig of the genomicon_install.sh
+A base direcotry structure would look like this after runnig the `genomicon_setup.sh`
 
 ```
 GENOMICON-Seq
-├── input_data_ampliconseq
-├── input_data_wes
-├── SQL_database
 ├── config_ampliseq.yml
 ├── config_wes.yml
+├── input_data_ampliseq
+│   ├── all_primers.csv
+│   ├── HPV16.fa
+│   ├── HPV16.fa.fai
+│   ├── multifasta_copy_number.csv
+│   ├── primer_set_1.csv
+│   ├── primer_set_2.csv
+│   └── probability_variant_table.csv
+├── input_data_wes
+│   ├── chr1.fasta.gz
+│   ├── dummy_probes.fasta
+│   ├── fasta_lengths.csv
+│   ├── multifasta_copy_number.csv
+│   ├── probability_variant_table.csv
+│   ├── SBS2_profile_short.csv
+│   ├── xgen-exome-research-panel-v2-probes-hg38_filtered_chr1.bed
+│   ├── xgen-exome-research-panel-v2-probes-hg38_short_all.bed
+│   ├── xgen-exome-research-panel-v2-targets-hg38_filtered_chr1.bed
+│   └── xgen-exome-research-panel-v2-targets-hg38_short_all.bed
 ├── Snakefile_ampliseq
-└── Snakefile_wes
+├── Snakefile_wes
+└── SQL_database
+    ├── chr1.sqlite
+    └── HPV16REF.sqlite
 ```
 
-Playset is ment for testing purposes only! For amplicon sequencing simulation, human papillomavirus (HPV) type 16 will be used as an example. The necessary files will be in the `input_data_ampliseq`. The downloaded `config_ampliseq.yml` is set up for a test run. 
+Play dataset is ment for testing. 
+For amplicon sequencing simulation, human papillomavirus (HPV) type 16 will be used as an example. The necessary files will be in the `input_data_ampliseq`. The downloaded `config_ampliseq.yml` is set up for a test run. Check the chapter [Main inputs](#Main-inputs) for more information about each input file.
 
-For WES simulation, chromosome 1 sequence will be used as an example. The necessary files will be in the `input_data_wes`. The downloaded `config_wes.yml` is set up for a test run. 
+For WES simulation, chromosome 1 sequence will be used as an example. The necessary files will be in the `input_data_wes`. The downloaded `config_wes.yml` is set up for a test run. Check the chapter [Main inputs](#Main-inputs) for more information about each input file.
 
-The scripts necessary for running the simulations are integrated into the container.
+The scripts necessary for running the simulations are integrated into the container, but can be accessed here: (scripts)[scripts/]
 
-In addition, during the simulation run, SQL-databases for each sequence in fasta file will be made. While for small genomes (several Mb) the generation time will not take long, for WES simulation on a whole human genome, generation time might take several hours. The premade SQL-databse for each hg38 chromosome is available for downloading here:
+In addition, during the simulation run, SQL-databases for each sequence in a fasta file will be generated. While for small genomes (several Mb) the generation time will not be long, for `WES simulation` on a `whole human genome`, generation time might take several hours. The premade SQL-databse for each hg38 chromosome is available for downloading here [SQL_database_whole_human_genome](https://zenodo.org/records/12683302/files/SQL_database_human.tar.gz). The packed database size is 21.8 GB, when unpacked its size is 99.8 GB.   
 
-LINK
-
-We also reccomend downloading the premade human genome (hg38) fasta file where chromosome headers correspond to the SQL-database names here:
-
-LINK
+We also reccomend downloading the human genome (hg38) fasta file where chromosome headers correspond to the SQL-database names here: [human_genome_hg38](https://zenodo.org/records/12683302/files/human_genome.fasta.gz)
 
 ## Quick start
 
-As the simulation would require some substantial computational power (we will cover that later), a playset will be used to test run. The genome for amplicon sequencing simulation is the double-stranded DNA human HPV16 genome, 7906bp. The parameters in the confing_ampliseq.yml are specified for testing purposes, each parameter will be explained in the next chapter. To run the simulation, run the following command from the main folder where the Snakemake_ampliseq and config_ampliseq.yml are:
+As the simulation would require some substantial computational power (we will cover that in the next chapter [Computational power and processing time](#computational-power-and-processing-time)), a playset will be used for a test run. The genome for amplicon sequencing simulation is the double-stranded DNA, HPV16 genome, 7906bp. The parameters in the confing_ampliseq.yml are specified for testing purposes, each parameter will be explained in the next chapter. To run the simulation, run the following command from the main folder where the Snakemake_ampliseq and config_ampliseq.yml are:
 
 ```
 docker run -it -v $(pwd):/usr/src/app/pipeline -w /usr/src/app/pipeline mimsto86/genomicon-seq:v1.0 snakemake -j 1 -p -s ./Snakefile_ampliseq --configfile ./config_ampliseq.yml
@@ -130,6 +143,7 @@ RAM:
 GENOMICON-Seq includes a wide range of adjustable parameters that can significantly affect the tool's performance and resource demands. Due to this variability, it is challenging to predict the exact memory requirements, optimal number of processor cores, or the time needed to complete the processes. We recommend conducting initial tests for each new scenario to determine the appropriate configurations that best meet your computational and analysis needs.
 
 ## Simulation parameters
+
 Most of the parameters are identical between simulation, however due to the nature of the simulated processes, some parameters are specific for amplicon sequencing simulation, while others can be found only in the WES simulation.
 
 ## Amplicon sequencing simulation parameters
@@ -671,6 +685,7 @@ In `PCR_*` folder produced for each PCR reaction specified, `*_seq_mutations_ove
 If polymerase error rate has been specifed (`POL_ERROR_RATE`), the information about the error mutations will be stored in `PCR_*-polymerase_error_mutations.csv` for each PCR reaction generated. The file holds the info about the mutation position, and to which nucleotide at this postion has been mutated to. 
 
 ### WES sequencing main ouputs
+
 For WES, the output folder should look like this
 
 ```
@@ -680,8 +695,6 @@ Output_data_wes
 ├── sample_1
 │   ├── chr1_inserted_mutations_overview.csv
 │   ├── chr1_mutation_counts.csv
-│   ├── chr2_inserted_mutations_overview.csv
-│   ├── chr2_mutation_counts.csv
 │   ├── cleanup_2_complete.txt
 │   ├── generated_reads
 │   │   ├── tech_replicate_1_PCR_R1.fastq.gz
@@ -693,7 +706,6 @@ Output_data_wes
 │       ├── PCR_filtered.bed.gz
 │       ├── PCR_reaction
 │       │   ├── chr1_seq_mutations_overview.csv
-│       │   ├── chr2_seq_mutations_overview.csv
 │       │   └── sequenced_frags.fasta.gz
 │       └── log_folder
 │           ├── 2_Fragmentation_prep.log
@@ -702,16 +714,12 @@ Output_data_wes
 │           ├── chr1_all_converted_to_csv.log
 │           ├── chr1_all_filtered.log
 │           ├── chr1_conversion_to_bedgz_complete.log
-│           ├── chr1_fragmentation_complete.log
-│           ├── chr2_all_converted_to_csv.log
-│           ├── chr2_all_filtered.log
-│           ├── chr2_conversion_to_bedgz_complete.log
-│           └── chr2_fragmentation_complete.log
+│           └── chr1_fragmentation_complete.log
 └── seed_log.txt
 ```
 
-Here, the WES simulation encompassed chr1 and chr2 sequences. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
-For each sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated containing all mutations that were inserted during the sample generation. The file will include the info about position, nuclotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutations (number of initialg genomes the mutation has been introduced). File will not be produced if no mutations were introduced during the sample generation process. 
+Here, the WES simulation included chr1. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
+For each chromosome sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated containing all mutations that were inserted during the sample generation. The file will include the info about position, nuclotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutations (number of initialg genomes the mutation has been introduced to). File will not be produced if no mutations were introduced during the sample generation process. 
 In addition, again for each sequence in `FASTA_FILE` a `*_mutation_counts.csv` provides the information about how many genome copes has been mutated and how many mutations each mutated copy contained.
 
-In `PCR_reaction` folder `*_seq_mutations_overview.csv` will be generated for each sequence in the `FASTA_FILE`. The csv has the same format as the `*_inserted_mutations_overview.csv` file but the frequency of each mutation now represent the number of unique fragments that are sequenced. File enable the comparison of mutation frequencies before and after the simulated library preparation process and provides the insight into the mutations that can be expected to be sequenced. If no mutations were intorduced during the sample generation process, or if all mutations has been lost during the library preparation process, only the simple log file will be produced.
+In `PCR_reaction` folder `*_seq_mutations_overview.csv` will be generated for each chromosome sequence in the `FASTA_FILE`. The csv has the same format as the `*_inserted_mutations_overview.csv` file but the frequency of each mutation now represent the number of unique fragments that are sequenced. File enable the comparison of mutation frequencies before and after the simulated library preparation process and provides the insight into the mutations that can be expected to be sequenced. If no mutations were intorduced during the sample generation process, or if all mutations has been lost during the library preparation process, only the simple log file will be produced.
