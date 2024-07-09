@@ -483,9 +483,9 @@ Specify the mutation rate (`scientific number`, e.g `"1e-6"`, enclose the value 
 
 `SBS_SIGNATURES: "sbs2_short.csv"`
 
-Specify the name of the SBS-signature table. See the user manual for the detailed description of the table format, and please use the (sbs_table_trimming.py)[additional_scripts/sbs_table_trimming.py] that converts the original SBS-signature table to the simulation-required format. 
+Specify the name of the SBS-signature table. See the user manual for the detailed description of the table format, and please use the [sbs_table_trimming.py](additional_scripts/sbs_table_trimming.py) that converts the original SBS-signature table to the simulation-required format. 
 
-Download the SBS-signature table from (COSMIC)[https://cancer.sanger.ac.uk/signatures/sbs/], save it a csv file, for example SBS2_table.csv. Each table has values for each 96 mutational context stored in five columns `SBS2_GRCh37`, `SBS2_GRCh38`, `SBS2_mm9`, `SBS2_mm10`, `SBS2_rn6`, pick the column name (for hg37 or hg38), we used SBS2_GRCh38, and run the script
+Download the SBS-signature table from [COSMIC](https://cancer.sanger.ac.uk/signatures/sbs/), save it a csv file, for example SBS2_table.csv. Each table has values for each 96 mutational context stored in five columns `SBS2_GRCh37`, `SBS2_GRCh38`, `SBS2_mm9`, `SBS2_mm10`, `SBS2_rn6`, pick the column name (for hg37 or hg38), we used SBS2_GRCh38, and run the script
 
 ```
 python sbs_table_trimming.py --input_sbs path/the/table/SBS2.csv --column_name SBS2_GRCh38 --output_sbs path/to/output/SBS2_selected.csv
