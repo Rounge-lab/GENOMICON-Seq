@@ -366,7 +366,8 @@ Each chosen mode must be enclosed by double quotation marks
 #### Advanced Sequencing parameter 
 See to manual for detailed description of the parameter.
 
-K_PARAMETER_seq: "0.005" 
+`K_PARAMETER_seq: "0.005"`
+
 The parameter is `MANDATORY` only when `OPT_FRAG_LENGTH` is other than `“NO”`.
 We recommend the value 0.005
 `0 < float`, enclose the value with the double quotation marks.
@@ -485,7 +486,7 @@ Specify the mutation rate (`scientific number`, e.g `"1e-6"`, enclose the value 
 
 Specify the name of the SBS-signature table. See the user manual for the detailed description of the table format, and please use the [sbs_table_trimming.py](additional_scripts/sbs_table_trimming.py) that converts the original SBS-signature table to the simulation-required format. 
 
-Download the SBS-signature table from [COSMIC](https://cancer.sanger.ac.uk/signatures/sbs/), save it a csv file, for example SBS2_table.csv. Each table has values for each 96 mutational context stored in five columns `SBS2_GRCh37`, `SBS2_GRCh38`, `SBS2_mm9`, `SBS2_mm10`, `SBS2_rn6`, pick the column name (for hg37 or hg38), we used SBS2_GRCh38, and run the script
+Download the SBS-signature table from [COSMIC](https://cancer.sanger.ac.uk/signatures/sbs/), save it as a csv file, for example SBS2_table.csv. Each table has values for each 96 mutational contexts stored in 5 columns `SBS2_GRCh37`, `SBS2_GRCh38`, `SBS2_mm9`, `SBS2_mm10`, `SBS2_rn6`, pick the column name (for hg37 or hg38), we used SBS2_GRCh38, and run the script
 
 ```
 python sbs_table_trimming.py --input_sbs path/the/table/SBS2.csv --column_name SBS2_GRCh38 --output_sbs path/to/output/SBS2_selected.csv
@@ -497,38 +498,38 @@ Place the generated table into the `input_data_wes` directory and set up a table
 `FRAGMENT_FRACTION: "1"`
 
 Specify the fraction of all genome copies in a sample that will be fragmented (`0 <= float <= 1`, enclose the value with double quotation marks) - `OPTIONAL`
-If not specifed, the default is `1`.
+If not specified, the default is `1`.
 
 `MIN_FRAGMENT_LENGTH: "250"` 
 
-Specifiy the minimum fragment length - `MANDATORY`
+Specific the minimum fragment length - `MANDATORY`
 
 `MAX_FRAGMENT_LENGTH: "1000"` 
 
-Specifiy the maximum fragment length - `MANDATORY`
+Specific the maximum fragment length - `MANDATORY`
 
 
 ### IV. Probe capture enrichment parameters
 
 `PROBES_FASTA: ""`
 
-Specify the fasta file containing probe sequences. The file must be placed in the specifed input folder (input_data_wes). The input folder does contain the dummy-probe sequences for testing purposes, that binds only to chromosome 1.
+Specify the fasta file containing probe sequences. The file must be placed in the specified input folder (input_data_wes). The input folder does contain the dummy-probe sequences for testing purposes, that binds only to chromosome 1.
 
 `PROBES_BED: "xgen-exome-research-panel-v2-probes-hg38_short_all.bed"`
 
 Specify the BED file containing the binding coordinates of probes to the selected chromosomes.
-`PROBES_FASTA` and `PROBES_BED` are `MUTUALLY EXCLUSIVE`, one or the other has to be specifed. For testing purposes we are using the probe BED file from [xGen Exome Research Panel v2 hg38](https://eu.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-hybridization-capture/pre-designed-hyb-cap-panels/exome-hyb-panel-v2) placed in the input_data_wes folder when the `genomiconseq_intall.sh` is run.
+`PROBES_FASTA` and `PROBES_BED` are `MUTUALLY EXCLUSIVE`, one or the other has to be specified. For testing purposes we are using the probe BED file from [xGen Exome Research Panel v2 hg38](https://eu.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-hybridization-capture/pre-designed-hyb-cap-panels/exome-hyb-panel-v2) placed in the input_data_wes folder when the `genomiconseq_intall.sh` is run.
 
 PROBES_TARGES: "xgen-exome-research-panel-v2-targets-hg38_short_all.bed" 
 Specify BED file containing coordinates of either probe targeted exons or all exons.
-For testing purposes we are useing BED file of [xGen Exome Research Panel v2 probe-targeting exons](https://eu.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-hybridization-capture/pre-designed-hyb-cap-panels/exome-hyb-panel-v2). BED file is placed in the `input_data_wes` folder when the `genomiconseq_intall.sh` is run
+For testing purposes we are using BED file of [xGen Exome Research Panel v2 probe-targeting exons](https://eu.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-hybridization-capture/pre-designed-hyb-cap-panels/exome-hyb-panel-v2). BED file is placed in the `input_data_wes` folder when the `genomiconseq_intall.sh` is run
 
 `MATCHING_LENGTH: "100"`
 
 Specify the minimum matching length between the probe and the fragment - `MANDATORY`
-Matching lentgth selects the fragments for sequencing. 
+Matching length selects the fragments for sequencing. 
 
-### V. PCR Paramters 
+### V. PCR Parameters 
 
 `NUM_CYCLES: "25"`
 
@@ -540,7 +541,7 @@ See to manual for detailed description of these parameters!
 
 `K_PARAMETER_pcr: "1"` 
 
-The k-parameter shapes the steepness of the simulated PCR efficicnecy drop.
+The k-parameter shapes the steepness of the simulated PCR efficiency drop.
 `0 < float`, enclose the value with the double quotation marks.
 `K_PARAMETER` and `MIDPOINT_CYCLE` (next parameter) are responsible for the amplification efficiency drop during the PCR cycling - `OPTIONAL`.
 The default is 1.
@@ -548,7 +549,7 @@ The default is 1.
 `MIDPOINT_CYCLE: "20"`
 
 Specify the PCR cycle at which the amplification efficiency is 50% - `OPTIONAL` 
-The deafult is a cycle corresponding to the 60% of all specified cycles.
+The default is a cycle corresponding to the 60% of all specified cycles.
 
 ### V. Sequencing parameters
 
@@ -565,13 +566,13 @@ Specify the sequencing mode - `OPTIONAL`
 
 `ERROR_MODEL: "novaseq"`
 
-Specify the seqencing error model - `OPTIONAL`
+Specify the sequencing error model - `OPTIONAL`
 [InSilicoSeq](https://insilicoseq.readthedocs.io/en/latest/index.html) (v1.6.0) supports 4 build-in error models `HiSeq`, `NextSeq`, `NovaSeq`, and `MiSeq` (enclose the given option with quotation marks)
 The default in `None`.
 
 `FASTA_GZ_OUTPUT: "--compress"` 
 
-Specify whether the porduced fastq files should be gz-compressed - `OPTIONAL`
+Specify whether the produced fastq files should be gz-compressed - `OPTIONAL`
 Leave the empty string (such as "") to omit the compression
 
 `GC_BIAS: "--gc_bias"`
@@ -594,12 +595,13 @@ Each chosen mode must be enclosed by double quotation marks
    2. `"fixed {integer}"` (e.g. `"fixed 450"`) - sets the length to 450, fragments with this length will have 50% to be sequenced
    3. `"default"` - the length of 350 will have 50% chance to sequenced
    4. `"medain"`  - median length based on the length of all fragments selected to be sequenced is determined. Fragments with this length will have 50% chance to be sequenced.
-   5. `"quartil {1|2|3|4}"` (e.g. `"quartil 3"`) - value of the selected quartile will be determined based on the length of all fragemnts. Fragments with this length will have 50% chance to be sequenced.
+   5. `"quartil {1|2|3|4}"` (e.g. `"quartil 3"`) - value of the selected quartile will be determined based on the length of all fragments. Fragments with this length will have 50% chance to be sequenced.
 
 #### Advanced Sequencing parameter 
 See to manual for detailed description of the parameter.
 
-K_PARAMETER_seq: "0.005" 
+`K_PARAMETER_seq: "0.005"`
+
 The parameter is `MANDATORY` only when `OPT_FRAG_LENGTH` is other than `“NO”`.
 We recommend the value 0.005
 `0 < float`, enclose the value with the double quotation marks.
@@ -627,7 +629,7 @@ For the more detailed info about each put file and their formats please see the 
 
 ### b. Optional input
 
-`CSV table with the copy number of different genomes` (`multifasta_copy_number.csv` in the `input_data` folder) - In the case where FASTA file contains many different genomes/chromosomes, their individual copy numbers can be specified in this table- otherwise, parameter `NR_COPIES` is applied on all genomes/chromosomes in the FASTA file. The table has two columns, `“fasta_name”` containing headers of each fasta sequence in the FASTA file, and `“copy_number”` contianing the number of copies for each of the sequences.
+`CSV table with the copy number of different genomes` (`multifasta_copy_number.csv` in the `input_data` folder) - In the case where FASTA file contains many different genomes/chromosomes, their individual copy numbers can be specified in this table- otherwise, parameter `NR_COPIES` is applied on all genomes/chromosomes in the FASTA file. The table has two columns, `“fasta_name”` containing headers of each fasta sequence in the FASTA file, and `“copy_number”` containing the number of copies for each of the sequences.
 
 `CSV table with the probability of each nucleotide being substituted with other nucleotides` - this table replaces the parameter `TS_TV_RATIO` (transitions vs transversions ratio). It enables the specification of the mutation probability of each nucleotide to mutate to any other nucleotide but itself. The table has 3 columns, `“Nucleotide”`, `“Variant”` and `“Probability”`, where for each nucleotide the probability to be mutated to any of the three variants is specified. 
 
@@ -680,7 +682,7 @@ Output_data_ampliseq
 └── seed_log.txt
 ```
 
-Here, the amplicon sequncing simulation encompassed 2 PCR reactions to active the whole genome sequencing of the HPV16. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
+Here, the amplicon sequencing simulation encompassed 2 PCR reactions to active the whole genome sequencing of the HPV16. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
 For each sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated containing all mutations that were inserted during the sample generation. The file will include the info about position, nucleotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutations (number of initial genomes the mutation has been introduced to). File will not be produced if no mutations were introduced during the sample generation process. 
 In addition, again for each sequence in `FASTA_FILE` a `*_mutation_counts.csv` provides the information about how many genome copes has been mutated and how many mutations each mutated copy contained. 
 
@@ -724,7 +726,7 @@ Output_data_wes
 ```
 
 Here, the WES simulation included chr1. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
-For each chromosome sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated containing all mutations that were inserted during the sample generation. The file will include the info about position, nucleotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutations (number of initialg genomes the mutation has been introduced to). File will not be produced if no mutations were introduced during the sample generation process. 
+For each chromosome sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated containing all mutations that were inserted during the sample generation. The file will include the info about position, nucleotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutations (number of initial genomes the mutation has been introduced to). File will not be produced if no mutations were introduced during the sample generation process. 
 In addition, again for each sequence in `FASTA_FILE` a `*_mutation_counts.csv` provides the information about how many genome copes has been mutated and how many mutations each mutated copy contained.
 
 In `PCR_reaction` folder `*_seq_mutations_overview.csv` will be generated for each chromosome sequence in the `FASTA_FILE`. The csv has the same format as the `*_inserted_mutations_overview.csv` file but the frequency of each mutation now represent the number of unique fragments that are sequenced. File enable the comparison of mutation frequencies before and after the simulated library preparation process and provides the insight into the mutations that can be expected to be sequenced. If no mutations were introduced during the sample generation process, or if all mutations has been lost during the library preparation process, only the simple log file will be produced.
