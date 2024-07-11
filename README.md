@@ -20,7 +20,7 @@ Welcome to GENOMICON-Seq, a tool for genetic exploration through simulation. GEN
 
 At the core of GENOMICON-Seq is the ability to generate samples with varying mutation frequencies, which are then subjected to a simulated library preparation process. This unique feature allows users to introduce and adjust the level of noise within each simulation, effectively masking the detection of real mutations to various extents. Such simulations are critical in demonstrating how different noise levels can obscure mutation detection, offering valuable insights for refining laboratory techniques and enhancing mutation analysis.
 
-Users can customize the mutation-to-noise ratio in their virtual samples, exploring a range of different scenarios facilitating a deeper understanding of the dynamic interplay between genetic variations and the technical limitations of sequencing technologies.
+Users can explore a range of different scenarios facilitating a deeper understanding of the dynamic interplay between genetic variations and the technical limitations of sequencing technologies.
 
 Dive into GENOMICON-Seq and harness the power of simulation to advance your mutation detection strategies and guide improvements in laboratory practices. 
 
@@ -36,14 +36,14 @@ Figure 2. Overview of the user-customizable parameters used in each of the simul
 
 
 The GENOMICON-Seq allows users to:
-A. control the generation of the initial sample with specified fasta sequences, their copy numbers, and mutation insertions. Users can define the mutation level, mutation targets, and substitution types thereby fully controlling the mutational process; 
+A. control the generation of the initial sample with specified fasta sequences, their copy numbers, and mutation insertions. Users can define the mutation mode, mutation targets, and substitution types thereby fully controlling the mutational process; 
 B. control the fraction of the initial sample that will be fragmented and the length of the produced fragments. As each fragmentation is a unique random process, users can specify the number of fragmentation replicates generated for each sample.
 C. chose between amplicon or whole exome sequencing. 
 - In amplicon sequencing users control the number of simulated PCR reactions for each fragmented replicate, the polymerase error rate in the PCR reactions, the number of cycles and the amplification efficiency.
 - In WES users control the matching length between the probe and simulated fragments that influences the selection of fragments for sequencing. In addition, a simplified PCR mimics the short indexing PCR excluding the polymerase error rate.  
-D. control the sequencing process, by specifying the number of reads that will be produced, and whether the fragment length will impact their probability of being sequenced (shorter fragment - higher probability of being sequenced). We modified the InSilicoSeq (1.6.0) tool enabling it to produce the reads from generated fragments but preserving its ability to simulate the sequencing error of different Illumina instruments.
+D. control the sequencing process, by specifying the number of reads that will be produced, and whether the fragment length will impact their probability of being sequenced (shorter fragment - higher probability of being sequenced). We modified the [InSilicoSeq](https://insilicoseq.readthedocs.io/en/latest/index.html) (1.6.0) tool enabling it to produce the reads from generated fragments but preserving its ability to simulate the sequencing error of different Illumina instruments.
 
-The main output from each simulation are the generated FASTQ.GZ files, and overview of the mutations and their frequencies after the sample generation and after the simulated library preparation processes. 
+The main outputs from each simulation are the generated FASTQ.GZ files, and overview of the mutations and their frequencies after the sample generation and after the simulated library preparation processes.  
 
 Here we will show how to set up and run the simulations, briefly introduce the parameters, main inputs and main outputs. However, for a more detailed explanation about the design and theoretical background please see the full GENOMICON-Seq manual. 
 
@@ -51,9 +51,13 @@ Here we will show how to set up and run the simulations, briefly introduce the p
 
 The GENOMICON-Seq represents a collection of scripts written in R, C++, PowerShell Python, and well-known bioinformatic tools, while the whole process is orchestrated by Snakemake. Currently, it is only available as a Docker container. 
 
-Please ensure that Docker is installed on your system before proceeding with the installation.
+Prerequisites:
+- Ensure that Docker is installed on your system before proceeding with the installation.
+- Approximately 12 GB of free space (for testing purposes)
+- A multi-core newer generation processor (at least 6 cores)
+- At least 16GB RAM 
 
-To quickly set up GENOMICON-Seq, execute the following commands in your terminal. This will download and run the installation script that sets up the Docker container, play dataset, Snakefiles, and their corresponding configuration files:
+To quickly set up GENOMICON-Seq, execute the following commands in your terminal. This will download and run the script that sets up the Docker container, play dataset, Snakefiles, and their corresponding configuration files:
 
 ```
 curl -L https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/genomicon_setup.sh -o genomiconseq_install.sh
@@ -101,15 +105,15 @@ For amplicon sequencing simulation, human papillomavirus (HPV) type 16 will be u
 
 For WES simulation, chromosome 1 sequence will be used as an example. The necessary files will be in the `input_data_wes`. The downloaded `config_wes.yml` is set up for a test run. Check the chapter [Main inputs](#Main-inputs) for more information about each input file, and [WES sequencing simulation parameters](#WES-sequencing-simulation-parameters) for detailed overview of the parameters and their usage.
 
-The scripts necessary for running the simulations are integrated into the container, but can be accessed here: (scripts)[scripts/]. Read generation depends on the modified [InSilicoSeq](https://insilicoseq.readthedocs.io/en/latest/index.html) (v1.6.0), modified InSilicoSeq scripts can be found here: [modified_iss_scripts](modified_iss_scripts/).
+The scripts necessary for running the simulations are integrated into the container, but can be accessed here: (scripts)[scripts/]. Read generation is governed by modified [InSilicoSeq](https://insilicoseq.readthedocs.io/en/latest/index.html) (v1.6.0), modified InSilicoSeq scripts can be found here: [modified_iss_scripts](modified_iss_scripts/).
 
-In addition, during the simulation run, SQL-databases for each sequence in a fasta file will be generated. While for small genomes (several Mb) the generation time will not be long, for `WES simulation` on a `whole human genome`, generation time might take several hours. The premade SQL-database for each hg38 chromosome is available for downloading here [SQL_database_whole_human_genome](https://zenodo.org/records/12683302/files/SQL_database_human.tar.gz). The packed database size is 21.8 GB, when unpacked its size is 99.8 GB.   
+In addition, during the simulation run, SQL-databases for each sequence in a fasta file will be generated. While for small genomes (several Mb) the generation time will not be long, for `WES simulation` on a `whole human genome`, generation time might take several hours. The premade SQL-database for each hg38 chromosome is available for downloading here [SQL_database_whole_human_genome](https://zenodo.org/records/12683302/files/SQL_database_human.tar.gz). The packed database size is 21.8 GB, when unpacked its size is 99.8 GB. Once made (or downloaded), the generation step of the SQL_database will be omitted as long as the headers of of the fasta sequences correspond to the names of the SQL-database.  
 
 We also recommend downloading the human genome (hg38) fasta file where chromosome headers correspond to the SQL-database names here: [human_genome_hg38](https://zenodo.org/records/12683302/files/human_genome.fasta.gz)
 
 ## Quick start
 
-As the simulation would require some substantial computational power (we will cover that in the next chapter [Computational power and processing time](#computational-power-and-processing-time)), a play-set will be used for a test run. The genome for amplicon sequencing simulation is the double-stranded DNA, HPV16 genome, 7906bp. The parameters in the confing_ampliseq.yml are specified for testing purposes, each parameter will be explained in the next chapter. To run the simulation, run the following command from the main folder where the Snakemake_ampliseq and config_ampliseq.yml are:
+As the simulation would require some substantial computational power (we will cover that in the next chapter [Computational power and processing time](#computational-power-and-processing-time)), a play dataset will be used for a test run. The genome for amplicon sequencing simulation is the double-stranded DNA, HPV16 genome, 7906bp. The parameters in the confing_ampliseq.yml are specified for testing purposes, each parameter will be explained in the next chapter. To run the simulation, run the following command from the main folder where the Snakemake_ampliseq and config_ampliseq.yml are:
 
 ```
 docker run -it -v $(pwd):/usr/src/app/pipeline -w /usr/src/app/pipeline mimsto86/genomicon-seq:v1.0 snakemake -j 1 -p -s ./Snakefile_ampliseq --configfile ./config_ampliseq.yml
@@ -121,29 +125,29 @@ For simplicity and testing purposes, only human chromosome 1 will be used in the
 docker run -it -v $(pwd):/usr/src/app/pipeline -w /usr/src/app/pipeline mimsto86/genomicon-seq:v1.0 snakemake -j 1 -p -s ./Snakefile_wes --configfile ./config_wes.yml
 ```
 
-A new folder `Output_data_ampliseq` or `Output_data_wes` will be created, depending on the chosen simulation. A more detailed info about the outputs can be found here, [Main outputs](#Main-outpus).
+A new folder `Output_data_ampliseq` or `Output_data_wes` will be created, depending on the chosen simulation. Main outputs for both simulations will be covered in the [Main outputs](#Main-outpus). 
 
 ## Computational power and processing time
 
-GENOMICON-Seq is designed to run in High Performance Computing (HPC) environments due to its computational demands. For testing and lighter tasks, it can also run on personal computers. Here are the details of the systems we have used for testing and development:
+GENOMICON-Seq is designed to run in High Performance Computing (HPC) environments due to its computational demands. For testing and lighter tasks, it can be also run on personal computers. Here are the details of the systems we have used for testing and development:
 
 MacOS Sonoma 14.5
 
-Processor: 2.6 GHz Six-core Intel Core i7
+Processor: 2.6 GHz Six-core Intel Core i7 (12 logical cores)
 RAM: 16 GB DDR4
 
 Ubuntu 22.04.3 (jammy)
 
-Processor: 2.6 GHz Six-core Intel Core i7
+Processor: 2.6 GHz Six-core Intel Core i7 (12 logical cores)
 RAM: 16 GB DDR4 
 
-0n a HPC (we used [educloud](https://www.uio.no/english/services/it/research/platforms/edu-research/)), for larger number of genome copies in amplicon sequencing simulation (we used 200 000 genome copies of HPV16) we used 60 CPUs and 4GB per CPU in our runs. In WES runs we used 60 CPUs and 8GB per run (when the copy number of complete human genome hg38 or only chromosome 1 was 2500). Depending on whether the complete genome was run or only chromosome 1, and the parameter values the simulation time was approximately 18-25h for the complete human genome, and approximately 1h for chromosome 1.  
+0n a HPC (we used [Educloud](https://www.uio.no/english/services/it/research/platforms/edu-research/)), for larger number of genome copies in amplicon sequencing simulation (we used 200 000 genome copies of HPV16) we used 60 CPUs and 4GB per CPU in our runs. In WES runs we used 60 CPUs and 8GB per run (when the copy number of complete human genome hg38 or only chromosome 1 was 2500). Depending on whether the complete genome was run or only chromosome 1, and the parameter values the simulation time was approximately 18-25h for the complete human genome, and approximately 1h for chromosome 1.  
 
 GENOMICON-Seq includes a wide range of adjustable parameters that can significantly affect the tool's performance and resource demands. Due to this variability, it is challenging to predict the exact memory requirements, optimal number of processor cores, or the time needed to complete the processes. We recommend conducting initial tests for each new scenario to determine the appropriate configurations that best meet your computational and analysis needs.
 
 ## Simulation parameters
 
-Most of the parameters are identical between simulation, however due to the nature of the simulated processes, some parameters are specific for amplicon sequencing simulation, while others can be found only in the WES simulation.
+Most of the parameters are identical between simulations, however due to the nature of the simulated processes, some parameters are specific for amplicon sequencing simulation, while others can be found only in the WES simulation.
 
 ## Amplicon sequencing simulation parameters
 
@@ -171,12 +175,12 @@ Specify the number of CPUs that the simulation will use (`integer`, do not enclo
 `SEED: "23"` 
 
 Specify the seed for reproducibility of the simulation - `OPTIONAL` 
-If not specified random seed will be assigned and recorded (`integer`, enclose the value with quotation marks)
+If not specified, random seed will be assigned and recorded (`integer`, enclose the value with quotation marks)
 
 `OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_ampliseq" `
 
-Specify the output directory - requires absolute path, edit only the name of the directory not the `path /usr/src/app/pipeline/`
-The parameter is MANDATORY (enclose the path with double quotation marks).
+Specify the output directory - requires absolute path, edit only the name of the directory not the path `/usr/src/app/pipeline/` as it points the absolute path in the container. 
+The parameter is `MANDATORY` (enclose the path with double quotation marks).
 Change the name of the output for each new run! Or remove the previously generated directory before the new run to avoid rewriting, and possible mix-up of the outputs!
 
 `INPUT_DIRECTORY: "input_data_ampliseq"` 
@@ -215,7 +219,7 @@ Read the full manual for detailed description of the table format.
 
 `MUT_CONTEXT: "ATC,CTA"` 
 
-Specify mutational targets as nucleotide contexts (single, tri or pentanucleotide context) - `OPTIONAL`
+Specify mutational targets as nucleotide contexts (single nucleotide, tri or pentanucleotide context) - `OPTIONAL`
 If not specified, any nucleotide in the sequence can mutate with the equal probability.
 Accepted format: multiple context can be specified as a comma-separated string - All specified contexts must be of the same type (single, tri or penta)
 
@@ -231,12 +235,12 @@ If none are specified (empty string ""), every nucleotide can be replaced with a
 Specify the name of the table with pre-determined substitution probabilities - `OPTIONAL` (enclose the table name with double quotation marks)
 Example of the table can be found in the folder `input_data_ampliseq` - `probability_variant_table.csv`
 `TS_TV_RATIO` and `SUBSTITUTION_PROBABILITY_TABLE` parameters are `MUTUALLY EXCLUSIVE`
-If none are specified (empty string ""), every nucleotide can be replaced with another with equal probability.
+If none are specified (empty string `""`), every nucleotide can be replaced with another with equal probability.
 
 #### 4. Mutation mode
 
 Two available mutation modes: `Deterministic` & `Specific mutation rate`.
-Modes are `MUTUALLY EXCLUSIVE` - leave the empty strings ("") for the unused mode's parameters. 
+Modes are `MUTUALLY EXCLUSIVE` - leave the empty strings (`""`) for the unused mode's parameters. 
 When no mutations should be inserted - leave the `deterministic mode`'s parameters empty, and set `MUTATION_RATE` parameter to `"0"`
 For detailed description on how these modes operates, see the full manual.
 
@@ -247,6 +251,7 @@ For detailed description on how these modes operates, see the full manual.
 Specify the fraction of all genome copies that will be mutated (`0 <= float <= 1`, enclose the value with double quotation marks)
 
 `FRACTION_POSITION: "0.1"` 
+
 Specify the fraction of all targeted positions that will mutate (`0 <= float <= 1`, enclose the value with quotation marks).
 If `MUT_CONTEXT` is specified, only the targeted contexts will be taken into account.
 
@@ -263,7 +268,7 @@ Specify the mutation rate (`scientific number`, e.g `"1e-6"`, enclose the value 
 Specify the fraction of all genome copies in a sample that will be fragmented (`0 <= float <= 1`, enclose the value with double quotation marks) - `OPTIONAL`
 If not specified, the default is `1`.
 
-`FRAGMENT_LENGTH: "250:550"` 
+`FRAGMENT_LENGTH: "250:550"` or `350`
 
 Specify the length of the fragments to be produced - `OPTIONAL` (enclose the value with double quotation marks).
 It can be a single non-negative `integer` value where all produced fragments will have the same length, e.g. `"450"`.
@@ -276,8 +281,8 @@ If not specified (empty string "") - by default range of fragment length is `"25
 
 Specify the `csv` table containing the primer information - `MANDATORY` (enclose the table name with double quotation marks).
 See the full manual for the detailed description of the file, chapter Input files.
-Or see `all_primers.csv` file in the input directory that contains the HPV16-primers that can be used in test runs.
-`NOTE:` In addition to this file PCR requires additional csv files not specified in parameters, one for each specified PCR reaction (see the manual, chapter Input files).
+Or check the `all_primers.csv` file in the input directory that contains the HPV16-primers that can be used in test runs.
+`NOTE:` In addition to this file PCR requires additional csv files not specified in parameters, one for each specified PCR reaction (see the [Main inputs](#Main-inputs) or full manual, chapter Input files).
 
 `NUM_PCR: 2` 
 
@@ -358,8 +363,8 @@ Fragments with greater length than the one specified will have less chance for s
 Each chosen mode must be enclosed by double quotation marks
 5 available modes:
    1. `"NO"` - mode will not be applied
-   2. `"fixed {integer}"` (e.g. `"fixed 450"`) - sets the length to 450, fragments with this length will have 50% to be sequenced
-   3. `"default"` - the length of 350 will have 50% chance to sequenced
+   2. `"fixed {integer}"` (e.g. `"fixed 450"`) - sets the length to 450 bp, fragments with this length will have 50% to be sequenced
+   3. `"default"` - the length of 350 bp will have 50% chance to sequenced
    4. `"medain"`  - median length based on the length of all fragments selected to be sequenced is determined. Fragments with this length will have 50% chance to be sequenced.
    5. `"quartil {1|2|3|4}"` (e.g. `"quartil 3"`) - value of the selected quartile will be determined based on the length of all fragments. Fragments with this length will have 50% chance to be sequenced.
 
@@ -615,7 +620,7 @@ For the more detailed info about each put file and their formats please see the 
 
 `FASTA` or `FASTA.gz` file with the genome sequence(s) - multiple genomes/chromosomes can be stored in one FASTA file. use as few as possible characters for the genome name in the header of the FASAT file.
 
-`CSV file with primer names and their sequences` required for `amplicon sequencing`, play dataset uses `all_primers.csv` file. This is the whole set of primers used for the whole genome sequencing of HPV16 in the [TaME-seq method](https://github.com/jean-marc-costanzi/TaME-seq). The format of the table must be the same. The `“name”` column contains primer names, the `“F_R”` column contains information about the primer orientation, and `“seq”` is the primer sequence.
+`CSV file with primer names and their sequences` required for `amplicon sequencing`, play dataset uses `all_primers.csv` file. This is the whole set of primers used for the whole genome sequencing of HPV16 in the [TaME-Seq method](https://github.com/jean-marc-costanzi/TaME-seq). The format of the table must be the same. The `“name”` column contains primer names, the `“F_R”` column contains information about the primer orientation, and `“seq”` is the primer sequence.
 
 `CSV file with primer names`, one file per PCR reaction required for `amplicon sequencing` - Depending on the specified number of PCR reactions, for each reaction, a separate primer set has to be pre-made, and placed in `input_data_ampliseq`. In our `input_data_ampliseq` from the play dataset, we have 2 primer_set CSV files, `primer_set_1.csv` and `primer_set_2.csv`, the index number at the end specifies in which PCR reaction, primers should be used. This is a single-column table (column “name”) with ONLY primer names. In case of only one PCR reaction, all names stored in the all_primers.csv should also be in the primer_set_1.csv. The number of `primer_set CSV tables` must match the number of specified PCR reactions in `NUM_PCR`.
 
@@ -682,14 +687,14 @@ Output_data_ampliseq
 └── seed_log.txt
 ```
 
-Here, the amplicon sequencing simulation encompassed 2 PCR reactions to active the whole genome sequencing of the HPV16. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
-For each sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated containing all mutations that were inserted during the sample generation. The file will include the info about position, nucleotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutations (number of initial genomes the mutation has been introduced to). File will not be produced if no mutations were introduced during the sample generation process. 
-In addition, again for each sequence in `FASTA_FILE` a `*_mutation_counts.csv` provides the information about how many genome copes has been mutated and how many mutations each mutated copy contained. 
+Here, the amplicon sequencing simulation encompassed 2 PCR reactions to achieve the whole genome sequencing of the HPV16. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
+For each sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated in `sample_*` folder containing all mutations that were inserted during the sample generation. The file will include the info about position, nucleotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutation (number of initial genomes the mutation has been introduced to). File will not be produced if no mutations were introduced during the sample generation process. 
+In addition, again for each sequence in `FASTA_FILE` a `*_mutation_counts.csv` provides the information about how many genome copies have been mutated and how many mutations each mutated copy contained. 
 
 
 In `PCR_*` folder produced for each PCR reaction specified, `*_seq_mutations_overview.csv` will be generated for each sequence in the `FASTA_FILE`. The csv has the same format as the `*_inserted_mutations_overview.csv` file but the frequency of each mutation now represent the number of unique fragments that are sequenced. File enable the comparison of mutation frequencies before and after the simulated library preparation process and provides the insight into the mutations that can be expected to be sequenced. If no mutations were introduced during the sample generation process, or if all mutations has been lost during the library preparation process, only the simple log file will be produced.
 
-If polymerase error rate has been specified (`POL_ERROR_RATE`), the information about the error mutations will be stored in `PCR_*-polymerase_error_mutations.csv` for each PCR reaction generated. The file holds the info about the mutation position, and to which nucleotide at this portion has been mutated to. 
+If polymerase error rate has been specified (`POL_ERROR_RATE`), the information about the error mutations will be stored in `PCR_*-polymerase_error_mutations.csv` for each PCR reaction generated. The file holds the info about the mutation position, and to which nucleotide the current nucleotide at this position has been mutated to. 
 
 ### WES sequencing main outputs
 
@@ -725,8 +730,8 @@ Output_data_wes
 └── seed_log.txt
 ```
 
-Here, the WES simulation included chr1. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
-For each chromosome sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated containing all mutations that were inserted during the sample generation. The file will include the info about position, nucleotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutations (number of initial genomes the mutation has been introduced to). File will not be produced if no mutations were introduced during the sample generation process. 
+Here, the WES simulation included chromosome 1. For each generated sample (specified by `NUM_SAMPLES`), generated FASTQ.GZ (or none-compressed FASTQ) can be found in a folder `generated_reads`. 
+For each chromosome sequence in `FASTA_FILE` a `*_inserted_mutations_overview.csv` will be generated in `sample_*` folder, containing all mutations that were inserted during the sample generation. The file will include the info about position, nucleotide, complementary nucleotide, trinucleotide, reverse complementary trinucleotide, pentanucleotide, reverse complementary pentanucleotide contexts, and the frequency of each mutations (number of initial genomes the mutation has been introduced to). File will not be produced if no mutations were introduced during the sample generation process. 
 In addition, again for each sequence in `FASTA_FILE` a `*_mutation_counts.csv` provides the information about how many genome copes has been mutated and how many mutations each mutated copy contained.
 
-In `PCR_reaction` folder `*_seq_mutations_overview.csv` will be generated for each chromosome sequence in the `FASTA_FILE`. The csv has the same format as the `*_inserted_mutations_overview.csv` file but the frequency of each mutation now represent the number of unique fragments that are sequenced. File enable the comparison of mutation frequencies before and after the simulated library preparation process and provides the insight into the mutations that can be expected to be sequenced. If no mutations were introduced during the sample generation process, or if all mutations has been lost during the library preparation process, only the simple log file will be produced.
+In `PCR_reaction` folder `*_seq_mutations_overview.csv` will be generated for each chromosome sequence in the `FASTA_FILE`. The csv has the same format as the `*_inserted_mutations_overview.csv` file but the frequency of each mutation now represent the number of unique fragments holding the mutation which were sequenced. File enable the comparison of mutation frequencies before and after the simulated library preparation process and provides the insight into the mutations that can be expected to be sequenced. If no mutations were introduced during the sample generation process, or if all mutations has been lost during the library preparation process, only the simple log file will be produced.
