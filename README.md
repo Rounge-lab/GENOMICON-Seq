@@ -45,7 +45,7 @@ D. control the sequencing process, by specifying the number of reads that will b
 
 The main outputs from each simulation are the generated FASTQ.GZ files, and overview of the mutations and their frequencies after the sample generation and after the simulated library preparation processes.  
 
-Here we will show how to set up and run the simulations, briefly introduce the parameters, main inputs and main outputs. However, for a more detailed explanation about the design and theoretical background please see the full GENOMICON-Seq manual. 
+Here we will show how to set up and run the simulations, briefly introduce the parameters, main inputs and main outputs. However, for a more detailed explanation about the design and theoretical background please see the full GENOMICON-Seq [manual](manaul/GENOMICON_manual.pdf). 
 
 ## Quick set-up
 
@@ -151,7 +151,7 @@ Most of the parameters are identical between simulations, however due to the nat
 
 ## Amplicon sequencing simulation parameters
 
-For more details about parameters, see the user manual.
+For more details about parameters, see the user [manual](manaul/GENOMICON_manual.pdf).
 Parameters can be `OPTIONAL`, `MANDATORY`, `MUTUALLY EXCLUSIVE`, or `ADVANCED`
 If parameter requires the double quotation mark enclosure, it will be noted. 
 When the parameter should be omitted, set it up as as en empty string `""`.
@@ -213,7 +213,7 @@ Specified number of copies applies on all sequences in the fasta file.
 
 Specify the `csv` table containing the copy number of each sequence in the fasta file - `OPTIONAL` (enclose the table name with double quotation marks)
 `NR_COPIES` and `MULTIFASTA_COPIES_TABLE` are `MUTUALLY EXCLUSIVE`
-Read the full manual for detailed description of the table format.
+Read the full [manual](manaul/GENOMICON_manual.pdf) for detailed description of the table format.
 
 #### 2. Mutation targets
 
@@ -242,7 +242,7 @@ If none are specified (empty string `""`), every nucleotide can be replaced with
 Two available mutation modes: `Deterministic` & `Specific mutation rate`.
 Modes are `MUTUALLY EXCLUSIVE` - leave the empty strings (`""`) for the unused mode's parameters. 
 When no mutations should be inserted - leave the `deterministic mode`'s parameters empty, and set `MUTATION_RATE` parameter to `"0"`
-For detailed description on how these modes operates, see the full manual.
+For detailed description on how these modes operates, see the full [manual](manaul/GENOMICON_manual.pdf).
 
 #### 4.a Deterministic Mode
 
@@ -280,9 +280,9 @@ If not specified (empty string "") - by default range of fragment length is `"25
 `PRIMERS: "all_primers.csv"` 
 
 Specify the `csv` table containing the primer information - `MANDATORY` (enclose the table name with double quotation marks).
-See the full manual for the detailed description of the file, chapter Input files.
+See the full [manual](manaul/GENOMICON_manual.pdf) for the detailed description of the file, chapter Input files.
 Or check the `all_primers.csv` file in the input directory that contains the HPV16-primers that can be used in test runs.
-`NOTE:` In addition to this file PCR requires additional csv files not specified in parameters, one for each specified PCR reaction (see the [Main inputs](#Main-inputs) or full manual, chapter Input files).
+`NOTE:` In addition to this file PCR requires additional csv files not specified in parameters, one for each specified PCR reaction (see the [Main inputs](#Main-inputs) or full [manual](manaul/GENOMICON_manual.pdf) chapter Input files).
 
 `NUM_PCR: 2` 
 
@@ -308,7 +308,7 @@ If not specified, the default is 1e-6
 Specify the fraction of PCR reaction that will be sequenced - `MANDATORY` (`0 <= float <= 1`, enclose the value with double quotation marks).
 
 #### Advanced PCR parameters 
-See to manual for detailed description of these parameters!
+See to [manual](manaul/GENOMICON_manual.pdf) for detailed description of these parameters!
 
 `K_PARAMETER_pcr: "1"` 
 
@@ -369,7 +369,7 @@ Each chosen mode must be enclosed by double quotation marks
    5. `"quartil {1|2|3|4}"` (e.g. `"quartil 3"`) - value of the selected quartile will be determined based on the length of all fragments. Fragments with this length will have 50% chance to be sequenced.
 
 #### Advanced Sequencing parameter 
-See to manual for detailed description of the parameter.
+See to [manual](manaul/GENOMICON_manual.pdf) for detailed description of the parameter.
 
 `K_PARAMETER_seq: "0.005"`
 
@@ -379,7 +379,7 @@ We recommend the value 0.005
 
 ## WES sequencing simulation parameters
 
-For more details about parameters, see the user manual.
+For more details about parameters, see the user [manual](manaul/GENOMICON_manual.pdf).
 Parameters can be `OPTIONAL`, `MANDATORY`, `MUTUALLY EXCLUSIVE`, or `ADVANCED`
 If parameter requires the double quotation mark enclosure, it will be noted. 
 When the parameter should be omitted, set it up as as en empty string `""`.
@@ -436,7 +436,7 @@ Specified number of copies applies on all sequences in the fasta file.
 
 Specify the `csv` table containing the copy number of each sequence in the fasta file - `OPTIONAL` (enclose the table name with double quotation marks)
 `NR_COPIES` and `MULTIFASTA_COPIES_TABLE` are `MUTUALLY EXCLUSIVE`
-Read the full manual for detailed description of the table format.
+Read the full [manual](manaul/GENOMICON_manual.pdf) for detailed description of the table format.
 
 #### 2. Mutation targets
 
@@ -467,7 +467,7 @@ Three mutation modes are available: `Deterministic`, `Specific mutation rate`, a
 `SBS-mimicry` mode refers to Single Nucleotide Substitution, and is the `extension of the Deterministic mode`, in addition to specifying the `SBS_TABLE`, `Deterministic mode`'s parameters needs to be specified!
 When `SBS-mimicry` mode is used, also set `MUT_CONTEXT`, `TS_TV_RATIO`, `SUBSTITUTION_PROBABILITY_TABLE` to empty strings "".
 When no mutations should be inserted - leave the `Deterministic` and `SBS-mimicry` mode parameters empty, and set `MUTATION_RATE` parameter to `"0"`
-For detailed description on how these modes operates, see the manual.
+For detailed description on how these modes operates, see the [manual](manaul/GENOMICON_manual.pdf).
 
 #### 4.a Deterministic Mode
 
@@ -489,7 +489,7 @@ Specify the mutation rate (`scientific number`, e.g `"1e-6"`, enclose the value 
 
 `SBS_SIGNATURES: "sbs2_short.csv"`
 
-Specify the name of the SBS-signature table. See the user manual for the detailed description of the table format, and please use the [sbs_table_trimming.py](additional_scripts/sbs_table_trimming.py) that converts the original SBS-signature table to the simulation-required format. 
+Specify the name of the SBS-signature table. See the user [manual](manaul/GENOMICON_manual.pdf) for the detailed description of the table format, and please use the [sbs_table_trimming.py](additional_scripts/sbs_table_trimming.py) that converts the original SBS-signature table to the simulation-required format. 
 
 Download the SBS-signature table from [COSMIC](https://cancer.sanger.ac.uk/signatures/sbs/), save it as a csv file, for example SBS2_table.csv. Each table has values for each 96 mutational contexts stored in 5 columns `SBS2_GRCh37`, `SBS2_GRCh38`, `SBS2_mm9`, `SBS2_mm10`, `SBS2_rn6`, pick the column name (for hg37 or hg38), we used SBS2_GRCh38, and run the script
 
@@ -542,7 +542,7 @@ Specify the number of PCR cycles to be performed - `OPTIONAL` (`integer`, enclos
 The default is 25.
 
 #### Advanced PCR parameters 
-See to manual for detailed description of these parameters!
+See to [manual](manaul/GENOMICON_manual.pdf) for detailed description of these parameters!
 
 `K_PARAMETER_pcr: "1"` 
 
@@ -603,7 +603,7 @@ Each chosen mode must be enclosed by double quotation marks
    5. `"quartil {1|2|3|4}"` (e.g. `"quartil 3"`) - value of the selected quartile will be determined based on the length of all fragments. Fragments with this length will have 50% chance to be sequenced.
 
 #### Advanced Sequencing parameter 
-See to manual for detailed description of the parameter.
+See to [manual](manaul/GENOMICON_manual.pdf) for detailed description of the parameter.
 
 `K_PARAMETER_seq: "0.005"`
 
@@ -614,7 +614,7 @@ We recommend the value 0.005
 
 ## Main inputs
 
-For the more detailed info about each put file and their formats please see the user manual.
+For the more detailed info about each put file and their formats please see the user [manual](manaul/GENOMICON_manual.pdf).
 
 ### a. Necessary input
 
@@ -640,7 +640,7 @@ For the more detailed info about each put file and their formats please see the 
 
 ## Main outputs
 
-The complete list of the output files made in both amplicon sequencing and WES are presented in the tool manual. Here we outline the most important ones that will enable the mutation tracking.
+The complete list of the output files made in both amplicon sequencing and WES are presented in the tool [manual](manaul/GENOMICON_manual.pdf). Here we outline the most important ones that will enable the mutation tracking.
 
 ### Amplicon sequencing main outputs
 
