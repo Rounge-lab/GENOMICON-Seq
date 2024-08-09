@@ -60,7 +60,7 @@ Prerequisites:
 To quickly set up GENOMICON-Seq, execute the following commands in your terminal. This will download and run the script that sets up the Docker container, play dataset, Snakefiles, and their corresponding configuration files:
 
 ```
-curl -L https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/genomicon_setup.sh -o genomiconseq_install.sh
+curl -L https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/genomicon_setup.sh -o genomicon_setup.sh
 chmod +x genomicon_setup.sh
 ./genomicon_setup.sh
 ```
