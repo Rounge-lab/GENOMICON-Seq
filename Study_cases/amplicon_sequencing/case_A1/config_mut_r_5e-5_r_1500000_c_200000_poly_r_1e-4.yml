@@ -1,0 +1,49 @@
+#Please check the parameters, and adjust them according to your project needs.
+
+# Project name
+PROJECT: IS-AmpliSeq
+
+
+# ================= General arguments ==================
+
+NUM_SAMPLES: 1 
+FRAG_REPLICATES: 5 
+NCORE: 115  
+SEED: "" 
+CIRCULAR: "Y" 
+OUTPUT_DIRECTORY: "/usr/src/app/scratch/Output_data_12" #use absolute path
+INPUT_DIRECTORY: "input_data" 
+FASTA_FILE: "HPV16.fa" 
+# ================== Configuration for 1defining_seq_and_mut ==================
+
+MUT_CONTEXT: "TCA,TCT,TCC,TCG" 
+TS_TV_RATIO: "3:1" 
+VARIANT_PROBABILITY_TABLE: "" 
+NR_COPIES: "200000" 
+MULTIFASTA_COPIES: ""
+MUT_GENOME_FRACTION: "" 
+FRACTION_POSITION: "" 
+MUTATION_RATE: "5e-5" 
+
+
+# ================== Configuration for Fragmentation ================== 
+FRAGMENT_LENGTH: "250:550" 
+FRAGMENT_FRACTION: "1"
+# ================== Configuration for PCR ==================
+
+PRIMERS: "all_primers.csv" 
+NUM_PCR: 2 
+AMPLICON_LENGTH: 250 
+K_PARAMETER: "1" 
+MIDPOINT_CYCLE: "20" 
+NUM_CYCLES: "25" 
+POL_ERROR_RATE: "1e-4"
+FRACTION_PCR_SEQUENCING: "0.005" 
+
+# ================= Sequencing Parameteres ==================
+
+NUM_READS: "1500000" 
+ERROR_MODEL: "novaseq" 
+FASTA_GZ_OUTPUT: "--compress" 
+OPT_FRAG_LENGTH: "NO" #options median, defualt, fixed {value}, quartile {1,2,3,4}
+K_PARAMETER_seq: "" 

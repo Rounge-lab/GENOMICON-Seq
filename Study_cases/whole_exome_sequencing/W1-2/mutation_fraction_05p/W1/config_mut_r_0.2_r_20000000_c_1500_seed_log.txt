@@ -1,0 +1,4 @@
+Major Seed: 948975958
+Sample 1, Tech Replicate 1: Seed = 2136095244
+Sample 1, Tech Replicate 2: Seed = 1916761323
+Sample 1, Tech Replicate 3: Seed = 1664512357

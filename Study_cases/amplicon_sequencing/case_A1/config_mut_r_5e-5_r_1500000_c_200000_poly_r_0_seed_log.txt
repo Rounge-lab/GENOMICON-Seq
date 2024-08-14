@@ -1,0 +1,16 @@
+Major Seed: 28748768
+Sample 1, Tech Replicate 1: Seed = 1059173165
+Sample 1, Tech Replicate 1, PCR 1: Seed = 480306689
+Sample 1, Tech Replicate 1, PCR 2: Seed = 236575158
+Sample 1, Tech Replicate 2: Seed = 505952452
+Sample 1, Tech Replicate 2, PCR 1: Seed = 1795536434
+Sample 1, Tech Replicate 2, PCR 2: Seed = 1190508769
+Sample 1, Tech Replicate 3: Seed = 397724521
+Sample 1, Tech Replicate 3, PCR 1: Seed = 47922845
+Sample 1, Tech Replicate 3, PCR 2: Seed = 755658483
+Sample 1, Tech Replicate 4: Seed = 1131141518
+Sample 1, Tech Replicate 4, PCR 1: Seed = 1703003321
+Sample 1, Tech Replicate 4, PCR 2: Seed = 1032591793
+Sample 1, Tech Replicate 5: Seed = 1243161234
+Sample 1, Tech Replicate 5, PCR 1: Seed = 690798828
+Sample 1, Tech Replicate 5, PCR 2: Seed = 196901911

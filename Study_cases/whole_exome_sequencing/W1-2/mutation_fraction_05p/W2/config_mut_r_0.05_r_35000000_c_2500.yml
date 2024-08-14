@@ -1,0 +1,54 @@
+#Please check the parameters, and adjust them according to your project needs.
+
+# Project name
+PROJECT: IS-WES
+
+
+# ================= General arguments ==================
+
+NUM_SAMPLES: 1 
+FRAG_REPLICATES: 3 
+NCORE: 58  
+SEED: ""  
+OUTPUT_DIRECTORY: "/usr/src/app/scratch/Output_data_7" 
+INPUT_DIRECTORY: "/usr/src/app/pipeline/input_data"
+FASTA_FILE: "chr1_only.fasta.gz" 
+SBS_SIGNATURES: ""
+
+# ================== Configuration for 1defining_seq_and_mut ==================
+
+MUT_CONTEXT: "TCA,TCT,TCG,TCC" 
+TS_TV_RATIO: "3:1" 
+VARIANT_PROBABILITY_TABLE: "" 
+NR_COPIES: "2500" 
+MULTIFASTA_COPIES: "" 
+MUT_GENOME_FRACTION: "0.05" 
+FRACTION_POSITION: "0.005" 
+MUTATION_RATE: "" 
+
+
+# ================== Whole Human Exom or Specific probes ==================
+PROBES_FASTA: ""
+PROBES_BED: "xgen-exome-research-panel-v2-probes-hg38_filtered_chr1.bed" #probe binding coordinates
+PROBES_TARGES: "xgen-exome-research-panel-v2-targets-hg38_filtered_chr1.bed" # regions which probes target
+
+# ================== Configuration for Fragmentation  ==================
+
+FRAGMENT_FRACTION: ""
+MIN_FRAGMENT_LENGTH: "250" 
+MAX_FRAGMENT_LENGTH: "1000" 
+MATCHING_LENGTH: "100" 
+
+# ================== Configuration for PCR ==================
+
+K_PARAMETER_pcr: "0.3" 
+MIDPOINT_CYCLE: "20" 
+NUM_CYCLES: "8"
+
+# ================= Sequencing Parameteres ==================
+
+NUM_READS: "35000000" 
+ERROR_MODEL: "novaseq" 
+FASTA_GZ_OUTPUT: "--compress" 
+OPT_FRAG_MODE: "NO" 
+K_PARAMETER_seq: "0.05" 
