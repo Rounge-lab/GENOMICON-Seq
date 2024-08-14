@@ -16,23 +16,13 @@
 
 ## Introduction
 
-Welcome to GENOMICON-Seq, a tool for genetic exploration through simulation. GENOMICON-Seq is designed to simulate both amplicon sequencing and whole exome sequencing (WES), providing a robust platform for users to experiment with virtual genetic samples (Figure 1).
+Welcome to GENOMICON-Seq, a tool for genetic exploration through simulation. GENOMICON-Seq is designed to simulate both amplicon sequencing and whole exome sequencing (WES), providing a robust platform for users to experiment with virtual genetic samples.
 
 At the core of GENOMICON-Seq is the ability to generate samples with varying mutation frequencies, which are then subjected to a simulated library preparation process. This unique feature allows users to introduce and adjust the level of noise within each simulation, effectively masking the detection of real mutations to various extents. Such simulations are critical in demonstrating how different noise levels can obscure mutation detection, offering valuable insights for refining laboratory techniques and enhancing mutation analysis.
 
 Users can explore a range of different scenarios facilitating a deeper understanding of the dynamic interplay between genetic variations and the technical limitations of sequencing technologies.
 
 Dive into GENOMICON-Seq and harness the power of simulation to advance your mutation detection strategies and guide improvements in laboratory practices. 
-
-
-
-![Example Image](img/all_spteps_illustrations.png)
-
-Figure 1. Overview of the simulated processes in both Amplicon sequencing and WES.
-
-![Example Image2](img/flow.png)
-
-Figure 2. Overview of the user-customizable parameters used in each of the simulated processes. Genome topology refers to whether the genome is circular or linear and is applicable only in amplicon sequencing simulation.
 
 
 The GENOMICON-Seq allows users to:
