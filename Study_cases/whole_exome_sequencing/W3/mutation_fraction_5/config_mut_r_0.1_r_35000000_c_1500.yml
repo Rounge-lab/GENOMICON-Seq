@@ -1,54 +1,102 @@
 #Please check the parameters, and adjust them according to your project needs.
 
 # Project name
-PROJECT: IS-WES
+PROJECT: GENOMICON-Seq - Whole Exome Sequencing
 
 
-# ================= General arguments ==================
+# =======================================================
+# ================= GENERAL PARAMETERS ==================
+# =======================================================
 
 NUM_SAMPLES: 1 
 FRAG_REPLICATES: 3 
-NCORE: 58  
-SEED: ""  
+NCORE: 24  
+SEED: "886881866"
 OUTPUT_DIRECTORY: "/usr/src/app/scratch/Output_data_7" 
 INPUT_DIRECTORY: "/usr/src/app/pipeline/input_data"
 FASTA_FILE: "chr1_only.fasta.gz" 
-SBS_SIGNATURES: ""
 
-# ================== Configuration for 1defining_seq_and_mut ==================
+
+# =======================================================
+# ================== SAMPLE PARAMETERS ==================
+# =======================================================
+
+# 1. GENOME COPIES IN THE SAMPLE
+# ==============================
+
+NR_COPIES: "1500" 
+MULTIFASTA_COPIES_TABLE: "" 
+
+# 2. MUTATION TARGETS
+# ===================
 
 MUT_CONTEXT: "TCA,TCT,TCG,TCC" 
+
+# 3. SUBSTITUTION TYPE
+# ====================
+
 TS_TV_RATIO: "3:1" 
-VARIANT_PROBABILITY_TABLE: "" 
-NR_COPIES: "1500" 
-MULTIFASTA_COPIES: "" 
+SUBSTITUTION_PROBABILITY_TABLE: "" 
+
+# 4. MUTATION MODE
+# ================
+
+# 4.a DETERMINISTIC MODE
+# ======================
+
 MUT_GENOME_FRACTION: "0.1" 
 FRACTION_POSITION: "0.05" 
+
+# 4.b SPECIFIC MUTATION RATE MODE
+# ===============================
+
 MUTATION_RATE: "" 
 
+# 4.c SBS-MIMICRY MODE 
+# ===============================
 
-# ================== Whole Human Exom or Specific probes ==================
-PROBES_FASTA: ""
-PROBES_BED: "xgen-exome-research-panel-v2-probes-hg38_filtered_chr1.bed" #probe binding coordinates
-PROBES_TARGES: "xgen-exome-research-panel-v2-targets-hg38_filtered_chr1.bed" # regions which probes target
+SBS_SIGNATURES: ""
 
-# ================== Configuration for Fragmentation  ==================
+
+# =============================================================
+# ================== FRGMENTATION PARAMETERS ==================
+# =============================================================
 
 FRAGMENT_FRACTION: ""
 MIN_FRAGMENT_LENGTH: "250" 
 MAX_FRAGMENT_LENGTH: "1000" 
+
+# ==============================================================
+# ================== PROBE CAPTURE ENRICHMENT ==================
+# ==============================================================
+PROBES_FASTA: ""
+PROBES_BED: "xgen-exome-research-panel-v2-probes-hg38_filtered_chr1.bed" #probe binding coordinates
+PROBES_TARGES: "xgen-exome-research-panel-v2-targets-hg38_filtered_chr1.bed" # regions which probes target - it can also be 
 MATCHING_LENGTH: "100" 
 
-# ================== Configuration for PCR ==================
+# ====================================================
+# ================== PCR PARAMETERS ==================
+# ====================================================
+
+NUM_CYCLES: "8"
+
+# ADVANCED PCR PARAMETERES
+# ========================
 
 K_PARAMETER_pcr: "0.3" 
 MIDPOINT_CYCLE: "20" 
-NUM_CYCLES: "8"
 
-# ================= Sequencing Parameteres ==================
+# ==========================================================
+# ================= SEQUENCING PARAMETERS ==================
+# ==========================================================
 
 NUM_READS: "35000000" 
+MODE: ""
 ERROR_MODEL: "novaseq" 
 FASTA_GZ_OUTPUT: "--compress" 
-OPT_FRAG_MODE: "median" 
+GC_BIAS: ""
+OPT_FRAG_LENGTH: "median" 
+
+# ADVANCED SEQUENCING PARAMETER
+# =============================
 K_PARAMETER_seq: "0.05" 
