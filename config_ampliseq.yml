@@ -15,39 +15,43 @@ SEED: "892"
 OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_ampliseq" 
 INPUT_DIRECTORY: "input_data_ampliseq" 
 FASTA_FILE: "HPV16.fa" 
-CIRCULAR: "Y" 
+
 
 # =======================================================
 # ================== SAMPLE PARAMETERS ==================
 # =======================================================
 
-# 1. GENOME COPIES IN THE SAMPLE
+# 1. GENOME TOPOLOGY - CIRCULAR/LINEAR
+
+CIRCULAR: "Y" 
+
+# 2. GENOME COPIES IN THE SAMPLE
 # ==============================
 
 NR_COPIES: "1000" 
 MULTIFASTA_COPIES_TABLE: ""
 
-# 2. MUTATION TARGETS
+# 3. MUTATION TARGETS
 # ===================
 
 MUT_CONTEXT: "ATC,CTA" 
 
-# 3. SUBSTITUTION TYPE
+# 4. SUBSTITUTION TYPE
 # ====================
 
 TS_TV_RATIO: "3:1" 
 SUBSTITUTION_PROBABILITY_TABLE: "" 
 
-# 4. MUTATION MODE
+# 5. MUTATION MODE
 # ================
 
-# 4.a DETERMINISTIC MODE
+# 5.a DETERMINISTIC MODE
 # ======================
 
 MUT_GENOME_FRACTION: "" 
 FRACTION_POSITION: "" 
 
-# 4.b SPECIFIC MUTATION RATE MODE
+# 5.b SPECIFIC MUTATION RATE MODE
 # ===============================
 
 MUTATION_RATE: "1e-5" 

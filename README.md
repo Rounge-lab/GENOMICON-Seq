@@ -185,14 +185,17 @@ Specify the name of the fasta file - file needs to be placed in the input direct
 The parameter is `MANDATORY` (enclose the name with double quotation marks).
 Multifasta files are allowed.
 
+
+### II. Sample parameters
+
+#### 1. Genome topology
+
 `CIRCULAR: "Y"` 
 
 Specify the topology of the given genome (`"Y"` or `"N"`) - `OPTIONAL` (enclose the option with double quotation marks)
 If not specified, the genome is considered to be circular (`"Y"`)
 
-### II. Sample parameters
-
-#### 1. Genome copies in the sample
+#### 2. Genome copies in the sample
 
 `NR_COPIES: "10"` 
 
@@ -205,7 +208,7 @@ Specify the `csv` table containing the copy number of each sequence in the fasta
 `NR_COPIES` and `MULTIFASTA_COPIES_TABLE` are `MUTUALLY EXCLUSIVE`
 Read the full [manual](manual/GENOMICON_manual.pdf) for detailed description of the table format.
 
-#### 2. Mutation targets
+#### 3. Mutation targets
 
 `MUT_CONTEXT: "ATC,CTA"` 
 
@@ -213,7 +216,7 @@ Specify mutational targets as nucleotide contexts (single nucleotide, tri or pen
 If not specified, any nucleotide in the sequence can mutate with the equal probability.
 Accepted format: multiple context can be specified as a comma-separated string - All specified contexts must be of the same type (single, tri or penta)
 
-#### 3. Substitution type
+#### 4. Substitution type
 
 `TS_TV_RATIO: "3:1"`
 
@@ -227,14 +230,14 @@ Example of the table can be found in the folder `input_data_ampliseq` - `probabi
 `TS_TV_RATIO` and `SUBSTITUTION_PROBABILITY_TABLE` parameters are `MUTUALLY EXCLUSIVE`
 If none are specified (empty string `""`), every nucleotide can be replaced with another with equal probability.
 
-#### 4. Mutation mode
+#### 5. Mutation mode
 
 Two available mutation modes: `Deterministic` & `Specific mutation rate`.
 Modes are `MUTUALLY EXCLUSIVE` - leave the empty strings (`""`) for the unused mode's parameters. 
 When no mutations should be inserted - leave the `deterministic mode`'s parameters empty, and set `MUTATION_RATE` parameter to `"0"`
 For detailed description on how these modes operates, see the full [manual](manual/GENOMICON_manual.pdf).
 
-#### 4.a Deterministic Mode
+#### 5.a Deterministic Mode
 
 `MUT_GENOME_FRACTION: "0.2"`
 
@@ -245,7 +248,7 @@ Specify the fraction of all genome copies that will be mutated (`0 <= float <= 1
 Specify the fraction of all targeted positions that will mutate (`0 <= float <= 1`, enclose the value with quotation marks).
 If `MUT_CONTEXT` is specified, only the targeted contexts will be taken into account.
 
-#### 4.b Specific mutation rate mode
+#### 5.b Specific mutation rate mode
 
 `MUTATION_RATE: "1e-6"` 
 
