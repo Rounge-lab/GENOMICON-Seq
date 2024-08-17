@@ -1,0 +1,8 @@
+identifier: chr1
+reference: chr1
+reference_base: data/ref_genome/
+analyses_base: results/analyses/
+results_base: results/base/
+scripts_base: data/scripts/
+data_base: data/raw/
+read_limit: 1000000 #this is the maximum read count limit to filter out the rest

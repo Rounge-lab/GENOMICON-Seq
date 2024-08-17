@@ -1,0 +1,373 @@
+#to use workflow run
+# $ source snakemake4/bin/activate
+
+# use command snakemake -j 16 -p -s ./Snakefile_snakemake5 --config directory=grou
+
+# Original author
+__author__="sium"
+__email__="sinan.ugur.umu@kreftregisteret.no"
+
+# Edited by 
+__author__="Jean-Marc"
+__email__="jean-marc.costanzi@ahus.no"
+
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
+
+import glob
+from collections import defaultdict
+
+if config.get('directory') is None:
+	directories, files, lanes = glob_wildcards("/data/raw/{group}/{sample}_{lane}_R1_001.fastq.gz")
+	#glob_wildcards("WGS/tests/fastq/{group}/{sample}.fastq.gzadr_R1.fastq")
+else: #a directory name can be provided for a single group run
+	files, lanes = glob_wildcards("data/raw/" + config.get('directory') + "/{sample}_{lane}_R1_001.fastq.gz")
+	directories=[config.get('directory')]*len(files)
+
+file_dict=defaultdict(list)
+#assign files to correct directories
+for i in zip(directories,files):
+        file_dict[i[0]].append(i[1])
+
+lane_dict=defaultdict(list)
+
+for i in zip(files,lanes):
+	lane_dict[i[0]].append(i[1])
+
+
+
+configfile: "config.yml"
+
+
+identifier=config["identifier"] #if it is empty, use the default
+read_limit=config["read_limit"] #this is the maximum read count limit to filter out the rest
+reference=config["reference"] #reference file that contains both HPV and human genome
+reference_base=config["reference_base"] #reference file folder
+scripts_base=config["scripts_base"] #scripts folder
+analyses_base=config["analyses_base"] #output analyses base folder
+results_base=config["results_base"]
+primer_file=config["primer_file"]
+adapter_sequence=config["adapter"]
+
+
+# directories, files, lanes = glob_wildcards("data/raw/{group}/{sample}_{lane}_R1_001.fastq.gz")
+
+if len(config) > 0:
+	print(config)
+else:
+	print("Identifier: {}".format(identifier))
+	print("Downsample limit: {} (The samples larger than this will be down-sampled.) ".format(read_limit))
+	print("Reference name: {}".format(reference))
+	print("Reference path: {}".format(reference_base))
+	print("Scripts path: {}".format(scripts_base))
+	print("Analyses directory path: {}".format(analyses_base))
+	print("Output directory path: {}".format(results_base))
+
+
+rule all:
+	input:
+		expand(results_base + "{group}/{group}.fastq_stats.csv",group=(directories)),
+		expand(results_base + "{group}/{group}." + identifier + ".stats.csv",group=(directories)),
+		expand(results_base + "{group}/{group}." + identifier + ".coverage.csv",group=set(directories)),
+		expand(results_base + "{group}/{group}." + identifier + ".discordant.reads.csv",group=set(directories)),
+		expand(analyses_base + "discordant_read_tables/{group}/{sample}." + identifier + ".discordant_reads.csv", group=directories, sample=files),
+		expand("data/fastqc/{group}/multiqc_report.html",group=set(directories)),
+		expand("data/trimmed/{group}/{sample}_L001_R1_001.trimmed.fastq.gz", group=directories, sample=files),
+		expand(analyses_base + "hisat2_bam_files/{group}/{sample}.hisat2." + identifier + ".sorted_select.bam", group=directories, sample=files)
+
+rule combine_p1_if_necessary:
+	input:
+		lambda wildcards: ["data/raw/{group}/{sample}_" + x + "_R1_001.fastq.gz" for x in lane_dict[wildcards.sample]]
+	output:
+		temp("data/combined/{group}/{sample}_L001_R1_001.fastq")
+	run:
+		shell("zcat {input} > {output}")
+
+
+rule combine_p2_if_necessary:
+	input:
+		lambda wildcards: ["data/raw/{group}/{sample}_" + x + "_R2_001.fastq.gz" for x in lane_dict[wildcards.sample]]
+	output:
+		temp("data/combined/{group}/{sample}_L001_R2_001.fastq")
+	run:
+		shell("zcat {input} > {output}")
+
+###trimming adapters
+rule adapter_trimming:
+	input:
+		"data/combined/{group}/{sample}_L001_R1_001.fastq",
+		"data/combined/{group}/{sample}_L001_R2_001.fastq"
+	output:
+		protected("data/trimmed/{group}/{sample}_L001_R1_001.trimmed.fastq.gz"),
+		protected("data/trimmed/{group}/{sample}_L001_R2_001.trimmed.fastq.gz")
+
+	threads: 100
+	run:
+		shell("cutadapt -j {threads} -q 20,20 -m 36 -o {output[0]} -p {output[1]} {input[0]} {input[1]}")
+
+
+rule fastqc_stats:
+	input:
+		"data/trimmed/{group}/{sample}_L001_R1_001.trimmed.fastq.gz",
+		"data/trimmed/{group}/{sample}_L001_R2_001.trimmed.fastq.gz"	
+	output:
+		directory("data/fastqc/{group}/{sample}.trimmed.FastQC")
+
+	threads: 100
+	run:
+		shell("mkdir {output}")
+		shell("fastqc --extract -o {output} -t {threads} {input}")
+
+rule multiqc:
+	input:
+		lambda wildcards: ["data/fastqc/" + wildcards.group + "/" + x + "." + "trimmed.FastQC" for x in set(file_dict[wildcards.group])]
+	output:
+		"data/fastqc/{group}/multiqc_report.html"
+	run:
+		shell("multiqc -f -o data/fastqc/{wildcards.group}/ data/fastqc/{wildcards.group}/")
+		
+
+
+###create fastq file statistics before and after trimming
+rule fastq_stats:
+	input:
+		"data/combined/{group}/{sample}_L001_R1_001.fastq",
+        "data/combined/{group}/{sample}_L001_R2_001.fastq",
+    	"data/trimmed/{group}/{sample}_L001_R1_001.trimmed.fastq.gz",
+		"data/trimmed/{group}/{sample}_L001_R2_001.trimmed.fastq.gz"
+	
+	output:
+		temp("data/raw/{group}/{sample}_L001_R1_001.fastq_stats"),
+		temp("data/raw/{group}/{sample}_L001_R2_001.fastq_stats"),
+		temp("data/trimmed/{group}/{sample}_L001_R1_001.trimmed.fastq_stats"),
+		temp("data/trimmed/{group}/{sample}_L001_R2_001.trimmed.fastq_stats"),
+		"data/fastq_stats/{group}/{sample}.fastq_stats.txt"
+
+	run:
+		for i,o in zip(input,output[0:4]):
+			#print (i)
+			shell("fastq-stats {i} > {o}")
+
+		shell("""
+			raw_reads=$(cat {output[0]} | grep "^reads" | cut -f2);
+			trimmed_reads=$(cat {output[2]} | grep "^reads" | cut -f2);
+			raw_length=$(cat {output[0]} | grep "^len mean" | cut -f2);
+			r1_trimmed_length=$(cat {output[2]} | grep "^len mean" | cut -f2);
+			r2_trimmed_length=$(cat {output[3]} | grep "^len mean" | cut -f2);
+			echo "{wildcards.sample}\t"$raw_reads"\t"$trimmed_reads"\t"$raw_length"\t"$r1_trimmed_length"\t"$r2_trimmed_length > {output[4]};
+		""")
+
+###map with Hisat2.
+rule hisat2_mapping:
+	input:
+		"data/trimmed/{group}/{sample}_L001_R1_001.trimmed.fastq.gz",
+		"data/trimmed/{group}/{sample}_L001_R2_001.trimmed.fastq.gz"
+	output:
+		analyses_base + "hisat2_bam_files/{group}/{sample}.hisat2." + identifier + ".sorted.bam",
+		analyses_base + "hisat2_bam_files/{group}/{sample}.hisat2." + identifier + ".sorted.bam.bai"
+
+	threads: 50
+
+	params:
+		genome=reference_base + reference
+
+	run:
+		shell("hisat2 -p {threads} --pen-noncansplice 0 -x {params.genome} -1 {input[0]} -2 {input[1]} | samtools view -bS - | samtools sort - -o {output[0]}")
+		shell("samtools index {output[0]}")
+
+
+# Compiling chromosome list from reference genome file
+rule chromosome_list:
+	input:
+		reference_base + reference + ".fasta"
+
+	output:
+		reference_base + reference + "_headers.txt"
+
+	shell:
+		"""
+		grep ">" {input} > {output}
+		"""
+
+
+# select chromosome/genome of interest for the coverage table
+rule chr_select:
+	input:
+		reference_base + reference + "_headers.txt",
+		analyses_base + "hisat2_bam_files/{group}/{sample}.hisat2." + identifier + ".sorted.bam"
+
+	output:
+		analyses_base + "hisat2_bam_files/{group}/{sample}.hisat2." + identifier + ".sorted_select.bam"
+
+	shell:
+		"""
+		bash {scripts_base}bash/chromosome_selection.sh {wildcards.sample} {input[0]} {input[1]} {output};
+		"""
+###create coverage tables and discordant coverage tables
+#these tables are created only for the HPV chromosome with the corresponding ID.
+
+rule mpileup_bcf:
+	input:
+		analyses_base + "hisat2_bam_files/{group}/{sample}.hisat2." + identifier + ".sorted_select.bam"
+	output:
+		analyses_base + "coverage_tables/{group}/{sample}." + identifier + "_BCF_python"
+
+	threads: 100
+	
+	params:
+		REF_GENOME=reference_base + reference + ".fasta"
+	shell:
+		"""
+		bcftools mpileup -d 1000000 -A -a "INFO/AD" -f {params.REF_GENOME} {input} --threads {threads} -o {output}
+		"""
+
+rule mpileup_edit:
+	input:
+		 analyses_base + "coverage_tables/{group}/{sample}." + identifier + "_BCF_python"
+		
+	output:
+         temp(analyses_base + "coverage_tables/{group}/{sample}." + identifier + "_BCF_python.export.csv")
+	shell:
+		"""
+		python {scripts_base}python/edit_csv_python_V3.3.py {input}
+		"""
+
+rule csv_edit:
+	input:
+		analyses_base + "coverage_tables/{group}/{sample}." + identifier + "_BCF_python.export.csv"
+		
+	output:
+		temp(analyses_base + "coverage_tables/{group}/{sample}." + identifier + ".coverage_raw.csv")
+	shell:
+		"""
+		sample_id={wildcards.sample}
+		{scripts_base}bash/Edit_vcf_snakemake.sh {input} {output}
+		"""
+
+rule csv_edit2:
+	input:
+		analyses_base + "hisat2_bam_files/{group}/{sample}.hisat2." + identifier + ".sorted_select.bam",
+		analyses_base + "coverage_tables/{group}/{sample}." + identifier + ".coverage_raw.csv"
+		
+	output:
+		temp(analyses_base + "coverage_tables/{group}/{sample}." + identifier + "_totalgenome"),
+		temp(analyses_base + "coverage_tables/{group}/{sample}." + identifier + ".coverage_temp2.csv")
+
+	params:
+		REF_GENOME=reference_base + reference + ".fasta"
+
+	shell:
+		"""
+		{scripts_base}bash/Edit_vcf_snakemake_1.5.sh {params.REF_GENOME} {input[0]} {output[0]} {input[1]} {output[1]}
+		"""
+
+rule csv_edit3:
+	input:
+		analyses_base + "coverage_tables/{group}/{sample}." + identifier + ".coverage_temp2.csv"
+		
+	output:
+		analyses_base + "coverage_tables/{group}/{sample}." + identifier + ".coverage.csv"
+	shell:
+		"""
+		{scripts_base}bash/Edit_vcf_snakemake_2.sh {input} {wildcards.sample} {output}
+		"""
+
+###create discordant reads table
+rule discordant_read_table:
+	input:
+		analyses_base + "hisat2_bam_files/{group}/{sample}.hisat2." + identifier + ".sorted.bam"
+
+	output:
+		analyses_base + "discordant_read_tables/{group}/{sample}." + identifier + ".discordant_reads.csv"
+
+	run:
+		shell("""
+        sample_id={wildcards.sample};
+		echo "sample_id\tread\tchr1\tr1_pos\tcigar1\tchr2\tr2_pos" > {output};
+		samtools view {input} | grep "AS:" | awk '$7 !="="{{print}}' | awk -v sample_id=$sample_id '{{print sample_id"\t"$1"\t"$3"\t"$4"\t"$6"\t"$7"\t"$8}}' >> {output} || true;
+		""")
+
+###create stats of hisat2 and bowtie2 mappings
+rule hisat2_mapping_statistics:
+	input:
+		[analyses_base + bam[0] + "/{group}/{sample}." + bam[1] + identifier + ".sorted.bam" for bam in zip(["hisat2_bam_files"],["hisat2."])]
+
+	output:
+		[analyses_base + bam + "/{group}/{sample}." + identifier + ".statistics.txt" for bam in ["hisat2_bam_files"]],
+		[analyses_base + bam + "/{group}/{sample}." + identifier + ".chromosome.txt" for bam in ["hisat2_bam_files"]]
+
+	params:
+		awk="""awk -v file=${file/.sorted.bam/} -v strand=$strand -v mapper=$mapper -v sample_id=$sample_id 'BEGIN{match(file,/(HPV[0-9]+)/,m)}{print $0"\t"m[1]"\t"strand"\t"file"\t"mapper"\t"sample_id}'"""
+		
+	run:
+		for i,f in zip([0,1],input):
+			stat=output[i]
+			chr=output[i+1]
+			print (f)							
+			shell("""
+			mapper=$(echo {f} | awk '{{if(/bowtie2/) print "bowtie2"; else print "hisat2";}}');
+			strand=$(echo {f} | awk '{{if(/F/) print "F"; else print "R";}}');
+			file=$(basename {f});
+			sample_id={wildcards.sample}
+			samtools stats {f} | grep ^SN | cut -f 2- | {scripts_base}python/parse_samfile_stats.py | {params.awk} > {stat};
+			{scripts_base}python/rnaseq_tool.py {f} | {params.awk} > {chr};
+			""")
+
+###combine fastq stats into a file
+rule fastq_stats_combine:
+	input:
+		[lambda wildcards: ["data/" + z + "/" + wildcards.group + "/" + x + y for x in set(file_dict[wildcards.group])] for y in [".fastq_stats.txt"] for z in ["fastq_stats"]]
+
+	output:
+		results_base + "{group}/{group}.fastq_stats.csv"
+        
+	run:
+		shell("""
+		echo "sample_id\traw_reads\ttrimmed_reads\traw_length\tr1_trimmed_length\tr2_trimmed_length\t" > {output};
+		cat {input} >> {output};
+		""")
+
+
+###combine all statistics into a file
+rule combine_statistics:
+        input:
+                [lambda wildcards: [analyses_base + z + "/" + wildcards.group + "/" + x + "." + identifier + y for x in set(file_dict[wildcards.group])] for y in [".statistics.txt",".chromosome.txt"] for z in ["hisat2_bam_files"]]
+
+        output:
+                results_base + "{group}/{group}." + identifier + ".stats.csv",
+                results_base + "{group}/{group}." + identifier + ".chromosome.csv"
+
+        run:
+                shell("cat " + analyses_base + "*/{wildcards.group}/*" + identifier + """.statistics.txt | awk 'BEGIN{{print "stats\tvalue\tstrain\tstrand\tfile\tmapper\tsample_id"}}{{print}}' > {output[0]}""")
+                shell("cat " + analyses_base + "*/{wildcards.group}/*" + identifier + """.chromosome.txt | awk 'BEGIN{{print "chr\tcount\tstrain\tstrand\tfile\tmapper\tsample_id"}}{{print}}'  > {output[1]}""")
+
+
+
+###combine coverage tables
+rule combine_coverage_tables:
+	input:
+		lambda wildcards: [analyses_base + "coverage_tables/" + wildcards.group + "/" + x + "." + identifier + y for x in set(file_dict[wildcards.group])] for y in [".coverage.csv"]
+	output:
+		results_base + "{group}/{group}." + identifier + ".coverage.csv",
+
+	params:
+		awk="""awk 'BEGIN{print "chr\tposition\treference\tcoverage\tA\tG\tC\tT\tdeletion\tskip\tqA\tqG\tqC\tqT\tsample_id"}{print $0}'"""
+	run:
+		shell("""
+                        cat {analyses_base}coverage_tables/{wildcards.group}/*{identifier}.coverage.csv | grep -v "position" | {params.awk} > {output[0]} || true;
+                """)
+
+
+rule combine_discordant_read_tables:
+	input:
+		lambda wildcards: [analyses_base + "discordant_read_tables/" + wildcards.group + "/" + x + "." + identifier + ".discordant_reads.csv" for x in set(file_dict[wildcards.group])]
+	output:
+		results_base + "{group}/{group}." + identifier + ".discordant.reads.csv"
+	run:
+		shell("""
+		ulimit -s 1000000;
+		echo "sample_id\tread\tchr1\tr1_pos\tcigar1\tchr2\tr2_pos" > {output};
+		touch {output} | for i in {input}; do cat $i; done | grep -v "sample_id" >> {output} || true;
+		""")
+
+

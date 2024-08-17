@@ -1,0 +1,10 @@
+identifier: HPV16
+reference: HPV16
+reference_base: data/ref_genome/
+analyses_base: results/analyses/
+results_base: results/base/
+adapter: CTGTCTCTTATACACATCTGACGCTGCCGACGA
+primer_file: data/primers/HPV-WGS_primers_adapters_revcomp.fasta
+scripts_base: data/scripts/
+data_base: data/raw/
+read_limit: 1000000 #this is the maximum read count limit to filter out the rest
