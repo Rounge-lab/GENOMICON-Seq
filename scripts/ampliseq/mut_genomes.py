@@ -1,32 +1,4 @@
 #!/usr/bin/env python3
-"""
-A faithful Python translation of the original R script that simulates mutations in
-FASTA genomes under a variety of user‑specified parameters.
-
-The script reproduces **every single step** of the R workflow, including:
-  • Command‑line interface and default behaviours
-  • Reproducible seeding logic (global + per‑worker)
-  • Parallel execution across multiple cores
-  • FASTA reading and basic statistics output
-  • Loading / inferring a nucleotide‑>variant probability table
-  • Tri/penta context handling via SQLite look‑ups
-  • Two mutation modes:  (A) mutated‑genome fraction  &  (B) specific Poisson rate
-  • Generation of *_mutations_table.csv* and *_sample_table.csv* per FASTA header
-  • Extensive console logging that mirrors the original script
-
-**Important paths**
-  /usr/src/app/pipeline/               – expected working directory for inputs
-  /usr/src/app/pipeline/SQL_database/  – where per‑header SQLite files live
-
-Python libraries used:
-  BioPython, pandas, numpy, sqlite3, multiprocessing, argparse, random, itertools
-
-The code has been carefully organised so that each logical block of the R code
-maps 1‑to‑1 onto a Python function or section, making future maintenance or
-verification straightforward.
-
-© 2025  — Translated by ChatGPT‑4o
-"""
 
 import os
 import sys
