@@ -42,6 +42,8 @@ Stosic, M.S., Costanzi, JM., Ambur, O.H. et al. GENOMICON-Seq enables realistic 
 
 It includes several case studies showing how the tool can be used to explore the impact of noise, mutation frequency, and experimental design on variant detection.
 
+The config files enabling the reconstruction of in silico samples can be found here: [GENOMICON-Seq_Study_cases](https://github.com/Rounge-lab/GENOMICON-Seq_Study_cases). 
+
 If GENOMICON-Seq ends up helping your research (or saving your sanity while debugging a pipeline), please cite the paper! It keeps our lab fed, our servers humming, and our egos gently inflated :).
 
 ## Quick set-up

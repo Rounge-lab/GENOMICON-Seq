@@ -192,7 +192,7 @@ rule defining_seq_and_mut:
 	wildcard_constraints:
 		sample_dir="|".join(runs.keys())
 	run:
-		command = "Rscript /usr/src/app/scripts/ampliseq/mut_genomes.R"
+		command = "python /usr/src/app/scripts/ampliseq/mut_genomes.py"
 		if params.NCORE:
 			command += f" --cores {params.NCORE}"
 		command += f" --fasta_sequence {params.FASTA_PATH}"

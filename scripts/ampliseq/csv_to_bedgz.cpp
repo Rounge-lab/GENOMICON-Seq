@@ -1,164 +1,140 @@
+// csv_to_bedgz.cpp
+// Convert fragment_coordinates.csv + new_start.csv into a BED.GZ
+// g++ -O3 -std=c++17 -pthread csv_to_bedgz.cpp -lboost_iostreams -o csv_to_bedgz
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <map>
 #include <thread>
+#include <regex>
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
-void processChunk(int startLine, int endLine, const std::string& inputFileName, const std::string& outputFileName, 
-                  const std::map<std::string, int>& newStartPositions, const std::map<std::string, int>& fastaLengths) {
-    std::ifstream csv_file(inputFileName);
-    if (!csv_file.is_open()) {
-        std::cerr << "Error opening input file: " << inputFileName << std::endl;
-        return;
-    }
+inline std::string dequote(std::string s) {
+    if (!s.empty() && (s.front()=='\"' || s.front()=='\'')) s.erase(0,1);
+    if (!s.empty() && (s.back() =='\"' || s.back() =='\'')) s.pop_back();
+    return s;
+}
+inline bool is_integer(const std::string& s) {
+    static const std::regex re(R"(^\s*-?\d+\s*$)");
+    return std::regex_match(s,re);
+}
 
-    std::ofstream bed_file(outputFileName, std::ios_base::out | std::ios_base::binary);
-    if (!bed_file.is_open()) {
-        std::cerr << "Error opening output file: " << outputFileName << std::endl;
-        return;
-    }
+// ---------------------------------------------------------------------
+// Worker: convert a CSV slice to a gz-compressed BED chunk
+// ---------------------------------------------------------------------
+void processChunk(int startLine, int endLine,
+                  const std::string& inCSV, const std::string& outPart,
+                  const std::map<std::string,int>& newStart,
+                  const std::map<std::string,int>& fastaLen)
+{
+    std::ifstream csv(inCSV);
+    if (!csv) { std::cerr<<"Cannot open "<<inCSV<<'\n'; return; }
 
-    boost::iostreams::filtering_ostream out;
-    out.push(boost::iostreams::gzip_compressor());
-    out.push(bed_file);
+    std::ofstream bed(outPart, std::ios::binary);
+    boost::iostreams::filtering_ostream gzout;
+    gzout.push(boost::iostreams::gzip_compressor());
+    gzout.push(bed);
 
-    std::string line;
-    int currentLine = 0;
-    while (std::getline(csv_file, line)) {
-        currentLine++;
-        if (currentLine < startLine || currentLine > endLine || currentLine == 1) continue; 
+    std::string line; int cur=0;
+    while (std::getline(csv,line)) {
+        ++cur; if (cur<startLine || cur>endLine || cur==1) continue;   // skip header/range
 
         std::vector<std::string> fields;
-        boost::split(fields, line, boost::is_any_of(";"));
+        boost::split(fields,line,boost::is_any_of(";"));
+        if (fields.size()<2) continue;
 
-        std::vector<std::string> name_parts;
-        boost::split(name_parts, fields[0], boost::is_any_of("_"));
-        std::string first_column = name_parts[0];
+        std::string copy   = dequote(fields[0]);
+        std::string ref    = copy.substr(0, copy.find('_'));
 
-        std::vector<std::string> coordinates;
-        boost::split(coordinates, fields[1], boost::is_any_of(","));
+        auto ns=newStart.find(copy); auto fl=fastaLen.find(ref);
+        if (ns==newStart.end() || fl==fastaLen.end()) continue;
 
-        int adjustment = newStartPositions.at(fields[0]);
-        int fastaLength = fastaLengths.at(first_column);
+        int shift=ns->second, gLen=fl->second;
 
-        for (int i = 0; i < coordinates.size(); i++) {
-            std::vector<std::string> pair;
-            boost::split(pair, coordinates[i], boost::is_any_of(":"));
+        std::vector<std::string> coords;
+        boost::split(coords,fields[1],boost::is_any_of(","));
 
-            int start = std::stoi(pair[0]) + adjustment;
-            int end = std::stoi(pair[1]) + adjustment;
+        for (size_t i=0;i<coords.size();++i) {
+            std::vector<std::string> p; boost::split(p,coords[i],boost::is_any_of(":"));
+            if (p.size()!=2){ std::cerr<<"Warn: bad token '"<<coords[i]<<"'\n"; continue;}
+            boost::trim(p[0]); boost::trim(p[1]);
+            if (!is_integer(p[0])||!is_integer(p[1])){ std::cerr<<"Warn: bad ints '"<<coords[i]<<"'\n"; continue;}
 
-            if (start > fastaLength && end > fastaLength) {
-                start = start - fastaLength + 1;
-                end = end - fastaLength + 1;
-            } else if (end > fastaLength) {
-                out << first_column << "\t" << start << "\t" << fastaLength << "\t" << fields[0] << "_f" << i+1 << "\n";
-                start = 1;
-                end = end - fastaLength + 1;
+            int start=std::stoi(p[0])+shift, end=std::stoi(p[1])+shift;
+
+            if (start>gLen && end>gLen){ start-=gLen; end-=gLen; }
+            else if (end>gLen){
+                gzout<<ref<<'\t'<<start<<'\t'<<gLen<<'\t'<<copy<<"_f"<<i+1<<'\n';
+                start=1; end-=gLen;
             }
+            gzout<<ref<<'\t'<<start<<'\t'<<end<<'\t'<<copy<<"_f"<<i+1<<'\n';
+        }
+    }
+    gzout.reset();
+}
 
-            out << first_column << "\t" << start << "\t" << end << "\t" << fields[0] << "_f" << i+1 << "\n";
+// ---------------------------------------------------------------------
+// Merge part-files and clean up
+// ---------------------------------------------------------------------
+void mergeParts(const std::vector<std::string>& parts,const std::string& out){
+    std::ofstream final(out, std::ios::binary);
+    for (auto& p:parts){ std::ifstream in(p, std::ios::binary); final<<in.rdbuf(); std::remove(p.c_str()); }
+}
+
+// ---------------------------------------------------------------------
+// MAIN
+// ---------------------------------------------------------------------
+int main(int argc,char* argv[]){
+    if (argc!=6){
+        std::cerr<<"Usage: "<<argv[0]<<" <fragment_coordinates.csv> <new_start.csv> <fasta_lengths.csv> <output.bed.gz> <threads>\n";
+        return 1;
+    }
+    std::string coordCSV=argv[1], newCSV=argv[2], lenCSV=argv[3], outBED=argv[4];
+    int threads=std::stoi(argv[5]);
+
+    // ---------- load new_start.csv (grab last column = numeric new_start)
+    std::map<std::string,int> newStart;
+    {
+        std::ifstream f(newCSV); std::string l; std::getline(f,l);
+        while (std::getline(f,l)){
+            std::vector<std::string> c; boost::split(c,l,boost::is_any_of(","));
+            if (c.empty()) continue;
+            std::string key=dequote(c[0]), val=dequote(c.back());
+            boost::trim(val); if (!is_integer(val)) continue;
+            newStart[key]=std::stoi(val);
         }
     }
 
-    csv_file.close();
-    out.pop();
-    bed_file.close();
-}
-
-void mergeFiles(const std::vector<std::string>& tempFiles, const std::string& finalOutput) {
-    std::ofstream finalFile(finalOutput, std::ios_base::out | std::ios_base::binary);
-    if (!finalFile.is_open()) {
-        std::cerr << "Error opening final output file: " << finalOutput << std::endl;
-        return;
-    }
-
-    for (const auto& tempFile : tempFiles) {
-        std::ifstream inFile(tempFile, std::ios_base::in | std::ios_base::binary);
-        if (!inFile.is_open()) {
-            std::cerr << "Error opening temporary file for merging: " << tempFile << std::endl;
-            continue;
+    // ---------- load fasta_lengths.csv
+    std::map<std::string,int> fastaLen;
+    {
+        std::ifstream f(lenCSV); std::string l; std::getline(f,l);
+        while (std::getline(f,l)){
+            std::vector<std::string> c; boost::split(c,l,boost::is_any_of(","));
+            if (c.size()<2) continue;
+            std::string key=dequote(c[0]), val=dequote(c[1]);
+            boost::trim(val); if (!is_integer(val)) continue;
+            fastaLen[key]=std::stoi(val);
         }
-        finalFile << inFile.rdbuf();
-        inFile.close();
-        std::remove(tempFile.c_str()); 
     }
 
-    finalFile.close();
-}
+    // ---------- dispatch threads
+    std::ifstream tmp(coordCSV);
+    int total=std::count(std::istreambuf_iterator<char>(tmp),std::istreambuf_iterator<char>(),'\n');
+    int per=total/threads, start=2;
+    std::vector<std::thread> th; std::vector<std::string> parts;
 
-int main(int argc, char* argv[]) {
-    if (argc != 6) {
-        std::cerr << "Usage: " << argv[0] << " <input.csv> <new_start.csv> <fasta_lengths.csv> <output.bed.gz> <num_threads>\n";
-        return 1;
+    for(int i=0;i<threads;++i){
+        int end=(i==threads-1)?total:start+per-1;
+        std::string part="part_"+std::to_string(i)+".bed.gz"; parts.push_back(part);
+        th.emplace_back(processChunk,start,end,coordCSV,part,std::cref(newStart),std::cref(fastaLen));
+        start=end+1;
     }
-
-    std::map<std::string, int> newStartPositions;
-    std::ifstream newStartFile(argv[2]);
-    if (!newStartFile.is_open()) {
-        std::cerr << "Error opening new start positions file: " << argv[2] << std::endl;
-        return 1;
-    }
-    std::string newStartLine;
-    std::getline(newStartFile, newStartLine); // Skip header
-    while (std::getline(newStartFile, newStartLine)) {
-        std::vector<std::string> newStartFields;
-        boost::split(newStartFields, newStartLine, boost::is_any_of(","));
-        std::string genomeName = newStartFields[0].substr(1, newStartFields[0].length() - 2);
-        int newStart = std::stoi(newStartFields[1]);
-        newStartPositions[genomeName] = newStart;
-    }
-    newStartFile.close();
-
-    std::map<std::string, int> fastaLengths;
-    std::ifstream fastaFile(argv[3]);
-    if (!fastaFile.is_open()) {
-        std::cerr << "Error opening fasta lengths file: " << argv[3] << std::endl;
-        return 1;
-    }
-    std::string fastaLine;
-    std::getline(fastaFile, fastaLine); // Skip header
-    while (std::getline(fastaFile, fastaLine)) {
-        std::vector<std::string> fastaFields;
-        boost::split(fastaFields, fastaLine, boost::is_any_of(","));
-        std::string fastaName = fastaFields[0].substr(1, fastaFields[0].length() - 2);
-        int fastaLength = std::stoi(fastaFields[1]);
-        fastaLengths[fastaName] = fastaLength;
-    }
-    fastaFile.close();
-
-    int numThreads = std::stoi(argv[5]);
-    std::vector<std::thread> threads;
-    std::vector<std::string> tempFileNames;
-
-    std::ifstream tempFile(argv[1]);
-    if (!tempFile.is_open()) {
-        std::cerr << "Error opening input CSV file: " << argv[1] << std::endl;
-        return 1;
-    }
-    int totalLines = std::count(std::istreambuf_iterator<char>(tempFile), std::istreambuf_iterator<char>(), '\n');
-    tempFile.close();
-
-    int linesPerThread = totalLines / numThreads;
-    int startLine = 2; // Start from line 2 to skip header
-
-    for (int i = 0; i < numThreads; ++i) {
-        std::string tempFileName = "temp_output_" + std::to_string(i) + ".bed.gz";
-        tempFileNames.push_back(tempFileName);
-        int endLine = (i == numThreads - 1) ? totalLines : startLine + linesPerThread - 1;
-        threads.emplace_back(processChunk, startLine, endLine, argv[1], tempFileName, newStartPositions, fastaLengths);
-        startLine = endLine + 1;
-    }
-
-    for (auto& thread : threads) {
-        thread.join();
-    }
-
-    mergeFiles(tempFileNames, argv[4]);
-
+    for(auto& t:th) t.join();
+    mergeParts(parts,outBED);
     return 0;
 }
