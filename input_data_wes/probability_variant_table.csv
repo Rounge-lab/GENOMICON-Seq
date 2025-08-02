@@ -1,0 +1,13 @@
+Nucleotide,Variant,Probability
+A,G,70
+A,C ,15
+A,T,15
+T,G,70
+T,C,15
+T ,A,15
+C,G,70
+C,T,15 
+C,A,15
+G,C,70
+G,T,15
+G,A,15

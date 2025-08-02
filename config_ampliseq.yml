@@ -1,0 +1,98 @@
+#Please check the parameters, and adjust them according to your project needs.
+
+# Project name
+PROJECT: GENOMICON-Seq - Amplicon Sequencing
+
+
+# =======================================================
+# ================= GENERAL PARAMETERS ==================
+# =======================================================
+
+NUM_SAMPLES: 1
+FRAG_REPLICATES: 1 
+NCORE: 8  
+SEED: "892" 
+OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_ampliseq" 
+INPUT_DIRECTORY: "input_data_ampliseq" 
+FASTA_FILE: "HPV16.fa" 
+
+
+# =======================================================
+# ================== SAMPLE PARAMETERS ==================
+# =======================================================
+
+# 1. GENOME TOPOLOGY - CIRCULAR/LINEAR
+
+CIRCULAR: "Y" 
+
+# 2. GENOME COPIES IN THE SAMPLE
+# ==============================
+
+NR_COPIES: "1000" 
+MULTIFASTA_COPIES_TABLE: ""
+
+# 3. MUTATION TARGETS
+# ===================
+
+MUT_CONTEXT: "ATC,CTA" 
+
+# 4. SUBSTITUTION TYPE
+# ====================
+
+TS_TV_RATIO: "3:1" 
+SUBSTITUTION_PROBABILITY_TABLE: "" 
+
+# 5. MUTATION MODE
+# ================
+
+# 5.a DETERMINISTIC MODE
+# ======================
+
+MUT_GENOME_FRACTION: "" 
+FRACTION_POSITION: "" 
+
+# 5.b SPECIFIC MUTATION RATE MODE
+# ===============================
+
+MUTATION_RATE: "1e-5" 
+
+
+# =============================================================
+# ================== FRGMENTATION PARAMETERS ==================
+# =============================================================
+
+FRAGMENT_FRACTION: "1"
+FRAGMENT_LENGTH: "250:550" 
+
+# ====================================================
+# ================== PCR PARAMETERS ==================
+# ====================================================
+
+PRIMERS: "all_primers.csv" 
+NUM_PCR: 2 
+AMPLICON_LENGTH: 250 
+NUM_CYCLES: "25" 
+POL_ERROR_RATE: "1e-5"
+FRACTION_PCR_SEQUENCING: "0.005" 
+
+# ADVANCED PCR PARAMETERES
+# ========================
+
+K_PARAMETER_pcr: "1" 
+MIDPOINT_CYCLE: "" 
+
+# ==========================================================
+# ================= SEQUENCING PARAMETERS ==================
+# ==========================================================
+
+NUM_READS: "100000" 
+MODE: ""
+ERROR_MODEL: "novaseq" 
+FASTA_GZ_OUTPUT: "--compress" 
+GC_BIAS: "--gc_bias"
+OPT_FRAG_LENGTH: "NO"
+
+# ADVANCED SEQUENCING PARAMETER
+# =============================
+K_PARAMETER_seq: "0.005" 
+
