@@ -8,7 +8,7 @@ mkdir -p "$WORKING_DIR"
 cd "$WORKING_DIR"
 
 # Docker image and Git repository details
-DOCKER_IMAGE="mimsto86/genomicon-seq:v1.1"
+DOCKER_IMAGE="mimsto86/genomicon-seq:v1.2"
 GIT_REPO_URL="https://github.com/Rounge-lab/GENOMICON-Seq"
 FOLDER_TO_CLONE=("input_data_ampliseq" "input_data_wes")
 FILES_TO_DOWNLOAD=("https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/Snakefile_ampliseq" "https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/Snakefile_wes" "https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/config_ampliseq.yml" "https://raw.githubusercontent.com/Rounge-lab/GENOMICON-Seq/main/config_wes.yml")
