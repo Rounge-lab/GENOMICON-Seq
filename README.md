@@ -6,13 +6,14 @@
 2. [Quick set-up](#quick-set-up)
 3. [Quick start](#quick-start)
 4. [Computational power and processing time](#computational-power-and-processing-time)
-4. [Simulation parameters](#simulation-parameters)
-5. [Amplicon sequencing simulation parameters](#Amplicon-sequencing-simulation-parameters)
-6. [WES sequencing simulation parameters](#WES-sequencing-simulation-parameters)
-7. [Main inputs](#Main-inputs)
-8. [Main outputs](#Main-outputs)
-9. [Amplicon sequencing main outputs](#amplicon-sequencing-main-ouputs)
-10. [WES sequencing main outputs](#WES-sequencing-main-ouputs)
+5. [Simulation parameters](#simulation-parameters)
+6. [Amplicon sequencing simulation parameters](#Amplicon-sequencing-simulation-parameters)
+7. [WES sequencing simulation parameters](#WES-sequencing-simulation-parameters)
+8. [Main inputs](#Main-inputs)
+9. [Main outputs](#Main-outputs)
+10. [Amplicon sequencing main outputs](#amplicon-sequencing-main-ouputs)
+11. [WES sequencing main outputs](#WES-sequencing-main-ouputs)
+12. [Contact](#contact)
 
 ## Introduction
 
@@ -737,3 +738,19 @@ For each chromosome sequence in `FASTA_FILE` a `*_inserted_mutations_overview.cs
 In addition, again for each sequence in `FASTA_FILE` a `*_mutation_counts.csv` provides the information about how many genome copes has been mutated and how many mutations each mutated copy contained.
 
 In `PCR_reaction` folder `*_seq_mutations_overview.csv` will be generated for each chromosome sequence in the `FASTA_FILE`. The csv has the same format as the `*_inserted_mutations_overview.csv` file but the frequency of each mutation now represent the number of unique fragments holding the mutation which were sequenced. File enable the comparison of mutation frequencies before and after the simulated library preparation process and provides the insight into the mutations that can be expected to be sequenced. If no mutations were introduced during the sample generation process, or if all mutations has been lost during the library preparation process, only the simple log file will be produced.
+
+## Contact
+
+- **Milan Stosic** — milas@uio.no  
+- **Trine B. Rounge** — t.b.rounge@farmasi.uio.no  
+
+If you hit turbulence, transmit a concise mission log and:
+1. Include your GENOMICON-Seq Docker tag (e.g., `mimsto86/genomicon-seq:v1.2.1`)
+2. Attach your `config_*.yml`
+3. Paste the smallest log snippet that reproduces the issue
+
+
+Prefer GitHub issues? Great — open one here:  
+https://github.com/Rounge-lab/GENOMICON-Seq/issues
+
+Bug reports, feature requests, or cries for help are all welcome :D
