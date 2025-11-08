@@ -11,7 +11,7 @@ PROJECT: GENOMICON-Seq - Amplicon Sequencing
 NUM_SAMPLES: 1
 FRAG_REPLICATES: 1 
 NCORE: 8  
-SEED: "892" 
+SEED: "42" 
 OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_ampliseq" 
 INPUT_DIRECTORY: "input_data_ampliseq" 
 FASTA_FILE: "HPV16.fa" 

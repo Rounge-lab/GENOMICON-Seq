@@ -11,7 +11,7 @@ PROJECT: GENOMICON-Seq - Whole Exome Sequencing
 NUM_SAMPLES: 1 
 FRAG_REPLICATES: 1
 NCORE: 10  
-SEED: ""  
+SEED: "42"  
 OUTPUT_DIRECTORY: "/usr/src/app/pipeline/Output_data_wes" 
 INPUT_DIRECTORY: "input_data_wes"
 FASTA_FILE: "chr1.fasta.gz" 
