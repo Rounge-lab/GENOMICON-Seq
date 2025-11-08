@@ -279,13 +279,23 @@ def generate_variant(nuc: str, prob_table: pd.DataFrame) -> str:
     return np.random.choice(probs["Variant"], p=probs["Probability"])
 
 
-def query_positions_sql(db_path: Path, table: str, column: str, ctx_set: list[str]) -> list[int]:
-    placeholders = ",".join("?" * len(ctx_set))
-    conn = sqlite3.connect(db_path)
-    qry = f"SELECT ROWID as row_number FROM {table} WHERE {column} IN ({placeholders})"
-    res = [row[0] for row in conn.execute(qry, ctx_set)]
-    conn.close()
-    return res
+def query_positions_sql(db_path, table, column, ctx_set):
+    """
+    Return matching ROWIDs in ascending order.
+    """
+    if not ctx_set:
+        return []
+    placeholders = ",".join(["?"] * len(ctx_set))
+    sql = f"""
+        SELECT ROWID AS row_number
+        FROM {table}
+        WHERE {column} IN ({placeholders})
+        ORDER BY ROWID
+    """
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.execute(sql, list(ctx_set))
+        rows = cur.fetchall()
+    return [int(r[0]) for r in rows]
 
 
 def querying_SQL_with_context(header: str, sql_col: str, sql_col_rev: str, ctx: list[str]):
@@ -295,30 +305,53 @@ def querying_SQL_with_context(header: str, sql_col: str, sql_col_rev: str, ctx: 
     return pos_5, pos_3
 
 
-def get_mutations_table(header: str,
-                        pos_5_sel: list[int],
-                        pos_3_sel: list[int],
-                        prob_table: pd.DataFrame) -> pd.DataFrame:
-    db = Path("/usr/src/app/pipeline/SQL_database") / f"{header}.sqlite"
-    conn = sqlite3.connect(db)
+def get_mutations_table(header, pos_5_sel, pos_3_sel, prob_table):
+    """
+    Fetch rows for the selected ROWIDs from SQLite, with a guaranteed order,
+    and let SQLite provide the position (ROWID). Do NOT assign positions from
+    the input lists.
+    """
+    db_path = f"/usr/src/app/pipeline/SQL_database/{header}.sqlite"
 
-    def fetch_rows(pos_list):
+    def _fetch(conn, pos_list, reverse=False):
+        # Handle empty selection cleanly
         if not pos_list:
             return pd.DataFrame()
-        placeholders = ",".join(map(str, pos_list))
-        df = pd.read_sql_query(f"SELECT * FROM {header} WHERE ROWID IN ({placeholders})", conn)
-        df["position"] = pos_list
+
+        # Normalize to ints and build parameter placeholders
+        pos_list = [int(p) for p in pos_list]
+        placeholders = ",".join(["?"] * len(pos_list))
+
+        # IMPORTANT: select ROWID AS position and enforce ORDER BY ROWID
+        sql = f"""
+            SELECT ROWID AS position, *
+            FROM {header}
+            WHERE ROWID IN ({placeholders})
+            ORDER BY ROWID
+        """
+        df = pd.read_sql_query(sql, conn, params=pos_list)
+
+        # Generate Variant from the correct base
+        base_col = "comp_nucleotide" if reverse else "nucleotide"
+        df["Variant"] = df[base_col].apply(lambda b: generate_variant(b, prob_table))
+
+        # If the site was selected via reverse bucket, complement back to forward strand
+        if reverse:
+            df["Variant"] = df["Variant"].str.translate(str.maketrans("ACGT", "TGCA"))
+
         return df
 
-    df5 = fetch_rows(pos_5_sel)
-    df3 = fetch_rows(pos_3_sel)
+    with sqlite3.connect(db_path) as conn:
+        df5 = _fetch(conn, pos_5_sel, reverse=False)
+        df3 = _fetch(conn, pos_3_sel, reverse=True)
 
-    df5["Variant"] = df5["nucleotide"].apply(lambda n: generate_variant(n, prob_table))
-    df3["Variant"] = df3["comp_nucleotide"].apply(lambda n: generate_variant(n, prob_table))
-    df3["Variant"] = df3["Variant"].str.translate(str.maketrans("ACGT", "TGCA"))
+    out = pd.concat([df5, df3], ignore_index=True)
 
-    conn.close()
-    return pd.concat([df5, df3], ignore_index=True)
+    # Final safety: keep outputs ordered by genomic coordinate
+    if not out.empty and "position" in out.columns:
+        out = out.sort_values("position").reset_index(drop=True)
+
+    return out
 
 ###############################################################################
 # V. MUTATED GENOME FRACTION OR MUTATION RATE?                               #

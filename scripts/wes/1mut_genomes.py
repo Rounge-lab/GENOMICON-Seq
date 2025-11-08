@@ -2,7 +2,7 @@
 
 
 from __future__ import annotations
-
+from numpy.random import default_rng, SeedSequence
 import argparse, csv, random, sqlite3, sys, textwrap
 from collections import Counter
 from datetime import datetime
@@ -13,11 +13,17 @@ from typing import Iterable, List, Optional
 import numpy as np
 import pandas as pd
 
-# ───────────────────────── Global tweaks ──────────────────────────
+
+################################################################################
+# 0. Global tweaks                                                             #
+################################################################################
 
 csv.field_size_limit(256 * 1024 * 1024)  # 256 MB field limit
 
-# ───────────────────────── Helpers ────────────────────────────────
+
+################################################################################
+# 1. Helpers                                                                   #
+################################################################################
 
 def log(msg: str):
     print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {msg}")
@@ -33,6 +39,11 @@ def rng_streams(seed: Optional[int], n: int) -> List[Generator]:
     return [default_rng(s) for s in SeedSequence(seed).spawn(n)]
 
 # ───────────────────────── CLI ────────────────────────────────────
+
+################################################################################
+# 2. CLI                                                                       #
+################################################################################
+
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(add_help=False)
@@ -54,7 +65,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fraction_positions", type=float)
     return p
 
-# ──────────────────────── SQLite helpers ──────────────────────────
+
+################################################################################
+# 3. SQLite helpers                                                            #
+################################################################################
 
 def sql_conn(header: str):
     return sqlite3.connect(Path("/usr/src/app/pipeline/SQL_database") / f"{header}.sqlite")
@@ -65,29 +79,32 @@ def fetch_rows(header: str, ids: Iterable[int]) -> pd.DataFrame:
         return pd.DataFrame()
     with sql_conn(header) as conn:
         ph = ",".join(["?"] * len(ids))
-        df = pd.read_sql_query(f"SELECT * FROM {header} WHERE ROWID IN ({ph})", conn, params=ids)
-    df["position"] = ids
+        sql = f"SELECT ROWID AS position, * FROM {header} WHERE ROWID IN ({ph}) ORDER BY ROWID"
+        df = pd.read_sql_query(sql, conn, params=ids)
     return df
 
-# ───────── Variant‑probability table & sampler ────────────────────
+
+
+################################################################################
+# 4. Variant‑probability table & sampler                                       #
+################################################################################
 
 def default_table(ts_prob: float, tv_prob: float) -> pd.DataFrame:
     rows = [(b, v, ts_prob if (b+v) in ("AG","GA","CT","TC") else tv_prob/2)
             for b in "ATCG" for v in "ATCG" if v != b]
     return pd.DataFrame(rows, columns=["Nucleotide","Variant","Probability"])
 
-def build_sampler(tbl: pd.DataFrame):
-    lut = {b:(g["Variant"].values,(g["Probability"].astype(float)/g["Probability"].sum()).values)
-           for b,g in tbl.groupby("Nucleotide")}
-    _rng=default_rng()
-    def _s(base:str):
-        if base=="N" or pd.isna(base):
-            return base
-        alleles,probs=lut[base]
-        return _rng.choice(alleles,p=probs)
-    return _s
+def build_sampler(tbl: pd.DataFrame, rng):
+    """Returns a function that samples Variant given Nucleotide, using the provided rng."""
+    def sample(base: str):
+        row = tbl.loc[tbl["Nucleotide"] == base]
+        return rng.choice(row["Variant"].to_numpy(), p=row["Probability"].to_numpy())
+    return sample
 
-# ───────── Context queries (pickle‑safe) ─────────────────────────
+
+################################################################################
+# 5. Context queries                                                           #
+################################################################################
 
 def ctx_query(header:str,col:str,rev:str,ctx:List[str],start:int,end:int):
     ph=",".join(["?"]*len(ctx))
@@ -104,7 +121,10 @@ def ctx_batch(args):
     batch,hd,c1,c2,ctx=args
     return ctx_query(hd,c1,c2,ctx,int(batch.iloc[0,1]),int(batch.iloc[-1,2]))
 
-# ───────── SBS helpers ───────────────────────────────────────────
+
+################################################################################
+# 6. SBS helpers                                                               #
+################################################################################
 
 def load_sbs(path:Path):
     df=pd.read_csv(path)
@@ -129,7 +149,10 @@ def sbs_count(args):
                 loc[c1]+=cnt; loc[c2]+=cnt
     return loc
 
-# ───────── CSV utilities ─────────────────────────────────────────
+
+################################################################################
+# 7. CSV utilities                                                             #
+################################################################################
 
 def wcsv(df:pd.DataFrame,path:Path):
     df.to_csv(path,sep=";",index=False,quoting=csv.QUOTE_NONE,lineterminator="\n")
@@ -143,7 +166,10 @@ def add_suffix(src:Path,dst:Path):
     df.iloc[:,0]=[f"{n}_MG{i+1}" for i,n in enumerate(df.iloc[:,0])]
     wcsv(df,dst)
 
-# ───────── Misc helpers ─────────────────────────────────────────
+
+################################################################################
+# 8. Misc helpers                                                              #
+################################################################################
 
 def split_df(df:pd.DataFrame,n:int):
     if n<=1 or df.empty:
@@ -159,7 +185,11 @@ def mg_row(idx:int,posvar:np.ndarray,hd:str,rng:Generator):
     sel=sorted(sel,key=lambda s:int("".join(filter(str.isdigit,s))))
     return {"genome_name":f"{hd}_MG{idx+1}","variant_position":",".join(sel),"copy_number":1}
 
-# ───────── Core per‑FASTA processor ────────────────────────────
+
+################################################################################
+# 9. Per‑FASTA mutation function                                               #
+################################################################################
+
 
 def run_fasta(row:pd.Series,bed:pd.DataFrame,a,samp,rng,out:Path,cores:int,sbs):
     hd=row["fasta_names"]
@@ -294,7 +324,9 @@ def run_fasta(row:pd.Series,bed:pd.DataFrame,a,samp,rng,out:Path,cores:int,sbs):
 
     sys.exit("Bad flag combination – check parameters")
 
-# ───────── Main entry ───────────────────────────────────────────
+################################################################################
+# 10. Main                                                                     #
+################################################################################
 
 def main():
     a=build_parser().parse_args()
@@ -361,8 +393,8 @@ def main():
             sys.exit("variant_probability_table must sit under /usr/src/app/pipeline")
         var_tbl=pd.read_csv(path)
     else:
-        var_tbl=default_table(0.5,0.5)
-    sampler=build_sampler(var_tbl)
+        var_tbl = default_table(1/3, 2/3)
+    sampler=build_sampler(var_tbl, rng)
     if a.sbs_signature_table:
         sbs_tables=load_sbs(Path(a.sbs_signature_table))
     else:

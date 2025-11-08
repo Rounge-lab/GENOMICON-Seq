@@ -4,7 +4,7 @@ import sys
 import glob
 
 def safe_load_csv(file_path):
-    """Safely loads a CSV file, ensuring it is not empty before reading."""
+    """Loads a CSV file, ensuring it is not empty before reading."""
     if os.stat(file_path).st_size == 0:
         print(f"Warning: The file {file_path} is empty.")
         return pd.DataFrame()
@@ -65,6 +65,8 @@ def update_overview_table(directory_path):
             overview_df.loc[mask, 'occurrence'] = row['value']
             matched_rows = matched_rows._append(overview_df[mask])
 
+        # Sort matched rows by genomic position before saving
+        matched_rows = matched_rows.sort_values(by="position", ascending=True)
         output_file_path = os.path.join(os.path.dirname(main_table_path), f"{identifier}_seq_mutations_overview.csv")
         matched_rows.to_csv(output_file_path, index=False)
         print(f"Updated table saved to {output_file_path}")
