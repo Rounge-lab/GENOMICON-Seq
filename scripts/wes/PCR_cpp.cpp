@@ -5,16 +5,21 @@
 #include <string>
 #include <thread>
 #include <random>
+#include <functional>
 #include <mutex>
 #include <cmath> 
 
-void applyBinomial(std::vector<int>& copy_number, double efficiency) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+void applyBinomial(std::vector<int>& copy_number, double efficiency, std::mt19937& gen) {
     for (auto& cn : copy_number) {
         std::binomial_distribution<> d(cn, efficiency);
         cn += d(gen);
     }
+}
+
+unsigned int deriveSeedForFragment(const std::string& fragmentName, unsigned int masterSeed) {
+    std::hash<std::string> hasher;
+    size_t hash = hasher(fragmentName);
+    return static_cast<unsigned int>(hash ^ masterSeed);
 }
 
 void processBatch(const std::vector<std::string>& batch, int threadId, const std::string& outputDir, int numberOfPcrCycles, int midpointCycles, double kParameter, long mainSeed) {
@@ -23,8 +28,6 @@ void processBatch(const std::vector<std::string>& batch, int threadId, const std
 
     std::ofstream outputFile(outputFilePath.str());
     outputFile << "Names;Mutation_Positions;Copies;genome_coordinates\n";
-
-    std::mt19937 gen(mainSeed + threadId); // Seed generation for each thread
 
     for (const auto& row : batch) {
         std::stringstream ss(row);
@@ -40,10 +43,13 @@ void processBatch(const std::vector<std::string>& batch, int threadId, const std
         int copy_number = 1;
         std::string mutation_positions = "No_mutations";
 
+        unsigned int fragmentSeed = deriveSeedForFragment(name, static_cast<unsigned int>(mainSeed));
+        std::mt19937 gen(fragmentSeed);
+
         std::vector<int> copy_numbers(numberOfPcrCycles, copy_number);
         for (int cycle = 1; cycle <= numberOfPcrCycles; ++cycle) {
             double efficiency = 1 / (1 + exp(kParameter * (cycle - midpointCycles)));
-            applyBinomial(copy_numbers, efficiency);
+            applyBinomial(copy_numbers, efficiency, gen);
         }
 
         outputFile << name << ";" << mutation_positions << ";" << copy_numbers.back() << ";" << coordinates << "\n";
