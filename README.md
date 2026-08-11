@@ -65,7 +65,15 @@ chmod +x genomicon_setup.sh
 ./genomicon_setup.sh
 ```
 
-Use arguments `--ampliseq` or `--wes` when running the `genomicon_setup.sh` to download files/scripts necessary for either amplicon sequencing or WES simulation. Without the arguments, the script will download files/scripts for both simulations. 
+Use `wes` or `ampliseq` to download the files required for the corresponding simulation, followed optionally by the GENOMICON-Seq version. The selected version is used for both the GitHub release files and the corresponding Docker image.
+
+```bash
+./genomicon_setup.sh wes 1.2.2
+./genomicon_setup.sh ampliseq 1.2.2
+```
+
+If no version is specified, the setup script uses the current default version (`v1.2.2`). If no simulation type is specified, files for both simulation modes are downloaded.
+
 
 
 A directory structure would look like this after running the `genomicon_setup.sh`
