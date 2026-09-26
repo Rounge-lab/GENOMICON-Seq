@@ -7,11 +7,11 @@ WORKING_DIR="GENOMICON-Seq"
 
 # Arguments
 MODE="${1:-}"
-VERSION="${2:-v1.2.2}"
+VERSION="${2:-v1.2.3}"
 
 # Accept version with or without "v"
-# 1.2.2  -> v1.2.2
-# v1.2.2 -> v1.2.2
+# 1.2.3  -> v1.2.3
+# v1.2.3 -> v1.2.3
 VERSION="v${VERSION#v}"
 
 # Accept mode with or without "--"
