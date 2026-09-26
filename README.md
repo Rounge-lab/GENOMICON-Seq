@@ -68,11 +68,11 @@ chmod +x genomicon_setup.sh
 Use `wes` or `ampliseq` to download the files required for the corresponding simulation, followed optionally by the GENOMICON-Seq version. The selected version is used for both the GitHub release files and the corresponding Docker image.
 
 ```bash
-./genomicon_setup.sh wes 1.2.2
-./genomicon_setup.sh ampliseq 1.2.2
+./genomicon_setup.sh wes 1.2.3
+./genomicon_setup.sh ampliseq 1.2.3
 ```
 
-If no version is specified, the setup script uses the current default version (`v1.2.2`). If no simulation type is specified, files for both simulation modes are downloaded.
+If no version is specified, the setup script uses the current default version (`v1.2.3`). If no simulation type is specified, files for both simulation modes are downloaded.
 
 
 
@@ -121,19 +121,39 @@ We also recommend downloading the human genome (hg38) fasta file where chromosom
 
 ## Quick start
 
-As the simulation would require some substantial computational power (we will cover that in the next chapter [Computational power and processing time](#computational-power-and-processing-time)), a play dataset will be used for a test run. The genome for amplicon sequencing simulation is the double-stranded DNA, HPV16 genome, 7906bp. The parameters in the confing_ampliseq.yml are specified for testing purposes, each parameter will be explained in the next chapter. To run the simulation, run the following command from the main folder where the Snakemake_ampliseq and config_ampliseq.yml are:
+As the simulation would require some substantial computational power (we will cover that in the next chapter [Computational power and processing time](#computational-power-and-processing-time)), a play dataset will be used for a test run. The genome for amplicon sequencing simulation is the double-stranded DNA, HPV16 genome, 7906bp. The parameters in the config_ampliseq.yml are specified for testing purposes, each parameter will be explained in the next chapter. To run the simulation, run the following command from the main folder where the Snakefile_ampliseq and config_ampliseq.yml are:
 
 ```
-docker run -it -v $(pwd):/usr/src/app/pipeline -w /usr/src/app/pipeline mimsto86/genomicon-seq:v1.2.1 snakemake -j 1 -p -s ./Snakefile_ampliseq --configfile ./config_ampliseq.yml
+docker run --rm -it \
+  --platform linux/amd64 \
+  --entrypoint /opt/venv/bin/python \
+  -e PATH="/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+  -v "$PWD":/usr/src/app/pipeline \
+  -w /usr/src/app/pipeline \
+  mimsto86/genomicon-seq:v1.2.3 \
+  /opt/venv/bin/snakemake \
+  -j 1 -p \
+  -s ./Snakefile_ampliseq \
+  --configfile ./config_ampliseq.yml
 ``` 
 
 For simplicity and testing purposes, only human chromosome 1 will be used in the WES simulation. For the whole human genome, greater computational power will be needed. The command for the test run is similar to the amplicon sequencing simulation.
 
 ```
-docker run -it -v $(pwd):/usr/src/app/pipeline -w /usr/src/app/pipeline mimsto86/genomicon-seq:v1.2.1 snakemake -j 1 -p -s ./Snakefile_wes --configfile ./config_wes.yml
+docker run --rm -it \
+  --platform linux/amd64 \
+  --entrypoint /opt/venv/bin/python \
+  -e PATH="/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+  -v "$PWD":/usr/src/app/pipeline \
+  -w /usr/src/app/pipeline \
+  mimsto86/genomicon-seq:v1.2.3 \
+  /opt/venv/bin/snakemake \
+  -j 1 -p \
+  -s ./Snakefile_wes \
+  --configfile ./config_wes.yml
 ```
 
-A new folder `Output_data_ampliseq` or `Output_data_wes` will be created, depending on the chosen simulation. Main outputs for both simulations will be covered in the [Main outputs](#Main-outpus). 
+A new folder `Output_data_ampliseq` or `Output_data_wes` will be created, depending on the chosen simulation. Main outputs for both simulations will be covered in the [Main outputs](#Main-outputs). 
 
 ## Computational power and processing time
 
