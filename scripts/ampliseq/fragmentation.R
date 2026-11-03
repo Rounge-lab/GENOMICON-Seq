@@ -133,7 +133,7 @@ if (circular_option=="Y") {
 } else {
   new_starts <- lapply(data_tables, function(dt) {
     dt2 <- dt[rep(seq_len(nrow(dt)), dt$copy_number)]
-    dt2[, new_start := 1L]
+    dt2[, new_start := 0L]
     dt2[, genome_name := paste0(genome_name,"_c", seq_len(.N)), by = genome_name]
   })
 }
