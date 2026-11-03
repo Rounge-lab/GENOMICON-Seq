@@ -72,7 +72,7 @@ Use `wes` or `ampliseq` to download the files required for the corresponding sim
 ./genomicon_setup.sh ampliseq 1.2.3
 ```
 
-If no version is specified, the setup script uses the current default version (`v1.2.3`). If no simulation type is specified, files for both simulation modes are downloaded.
+If no version is specified, the setup script uses the current default version (`v1.2.4`). If no simulation type is specified, files for both simulation modes are downloaded.
 
 
 
@@ -130,7 +130,7 @@ docker run --rm -it \
   -e PATH="/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
   -v "$PWD":/usr/src/app/pipeline \
   -w /usr/src/app/pipeline \
-  mimsto86/genomicon-seq:v1.2.3 \
+  mimsto86/genomicon-seq:v1.2.4 \
   /opt/venv/bin/snakemake \
   -j 1 -p \
   -s ./Snakefile_ampliseq \
@@ -146,7 +146,7 @@ docker run --rm -it \
   -e PATH="/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
   -v "$PWD":/usr/src/app/pipeline \
   -w /usr/src/app/pipeline \
-  mimsto86/genomicon-seq:v1.2.3 \
+  mimsto86/genomicon-seq:v1.2.4 \
   /opt/venv/bin/snakemake \
   -j 1 -p \
   -s ./Snakefile_wes \
