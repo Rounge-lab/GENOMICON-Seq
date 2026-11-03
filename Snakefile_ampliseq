@@ -330,10 +330,12 @@ rule matching_fragment_to_primers_bed:
 	params:
 		pcr_file = "{sample_dir}/tech_replicate_{tech_rep}/PCR/fragments_pcr{pcr_num}.bed.gz",
 		fasta_length = "{sample_dir}/fasta_lengths.csv",
-		amp_length = config["AMPLICON_LENGTH"]
+		amp_length = config["AMPLICON_LENGTH"],
+		circular = config.get("CIRCULAR", "N"),
+		max_amp_length = config.get("MAX_AMPLICON_LENGTH", 1000)
 	shell:
 		"""
-		/usr/src/app/scripts/ampliseq/primer_binding_fragments {input.split_primer_bed} {params.pcr_file} {params.fasta_length} {output.frag_coordinates_lengths} {params.amp_length}
+		/usr/src/app/scripts/ampliseq/primer_binding_fragments {input.split_primer_bed} {params.pcr_file} {params.fasta_length} {output.frag_coordinates_lengths} {params.amp_length} {params.circular} {params.max_amp_length}
 		"""
 
 rule pcr_sim:
